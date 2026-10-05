@@ -15,12 +15,42 @@ var tasksCmd = &cobra.Command{
 }
 
 var (
-	taskMax   int64
-	taskNotes string
-	taskDue   string
-	taskList  string
-	taskJSON  bool
+	taskMax    int64
+	taskNotes  string
+	taskDue    string
+	taskList   string
+	taskParent string
+	taskLink   string
+	taskJSON   bool
 )
+
+func printTaskItem(t tasks.TaskSummary) {
+	icon := "[ ]"
+	if t.Status == "completed" {
+		icon = "[x]"
+	}
+	prefix := ""
+	if t.Parent != "" {
+		prefix = "  └─ "
+	}
+	fmt.Printf("%s%s %s (ID: %s)\n", prefix, icon, t.Title, t.ID)
+	if t.Notes != "" {
+		fmt.Printf("%s   Notes: %s\n", prefix, t.Notes)
+	}
+	if t.Due != "" {
+		fmt.Printf("%s   Due: %s\n", prefix, t.Due)
+	}
+}
+
+func buildTaskNotes(notes, link string) string {
+	if link == "" {
+		return notes
+	}
+	if notes == "" {
+		return "Attachment: " + link
+	}
+	return notes + "\nAttachment: " + link
+}
 
 var tasksListCmd = &cobra.Command{
 	Use:   "list",
@@ -44,17 +74,7 @@ var tasksListCmd = &cobra.Command{
 			return nil
 		}
 		for _, t := range items {
-			icon := "[ ]"
-			if t.Status == "completed" {
-				icon = "[x]"
-			}
-			fmt.Printf("%s %s (ID: %s)\n", icon, t.Title, t.ID)
-			if t.Notes != "" {
-				fmt.Printf("    Notes: %s\n", t.Notes)
-			}
-			if t.Due != "" {
-				fmt.Printf("    Due: %s\n", t.Due)
-			}
+			printTaskItem(t)
 		}
 		return nil
 	},
@@ -69,7 +89,8 @@ var tasksAddCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		t, err := svc.CreateTask(taskList, args[0], taskNotes, taskDue)
+		notes := buildTaskNotes(taskNotes, taskLink)
+		t, err := svc.CreateTask(taskList, taskParent, args[0], notes, taskDue)
 		if err != nil {
 			return err
 		}
@@ -113,6 +134,65 @@ var tasksDeleteCmd = &cobra.Command{
 	},
 }
 
+var tasksListsCmd = &cobra.Command{
+	Use:   "lists",
+	Short: "List all task lists",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := tasks.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		lists, err := svc.ListTaskLists()
+		if err != nil {
+			return err
+		}
+		if taskJSON {
+			b, _ := json.MarshalIndent(lists, "", "  ")
+			fmt.Println(string(b))
+			return nil
+		}
+		for _, l := range lists {
+			fmt.Printf("- %s (ID: %s)\n", l.Title, l.ID)
+		}
+		return nil
+	},
+}
+
+var tasksCreateListCmd = &cobra.Command{
+	Use:   "create-list [title]",
+	Short: "Create a new task list",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := tasks.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		tl, err := svc.CreateTaskList(args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Task list created: %s (ID: %s)\n", tl.Title, tl.Id)
+		return nil
+	},
+}
+
+var tasksDeleteListCmd = &cobra.Command{
+	Use:   "delete-list [list_id]",
+	Short: "Delete a task list by ID",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := tasks.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		if err := svc.DeleteTaskList(args[0]); err != nil {
+			return err
+		}
+		fmt.Printf("Task list %s deleted successfully.\n", args[0])
+		return nil
+	},
+}
+
 func init() {
 	tasksListCmd.Flags().Int64VarP(&taskMax, "max", "m", 20, "Max tasks")
 	tasksListCmd.Flags().StringVarP(&taskList, "list", "l", "@default", "Task list ID")
@@ -121,6 +201,10 @@ func init() {
 	tasksAddCmd.Flags().StringVarP(&taskNotes, "notes", "n", "", "Task notes/description")
 	tasksAddCmd.Flags().StringVarP(&taskDue, "due", "d", "", "Due date RFC3339 (e.g. 2026-10-10T00:00:00.000Z)")
 	tasksAddCmd.Flags().StringVarP(&taskList, "list", "l", "@default", "Task list ID")
+	tasksAddCmd.Flags().StringVar(&taskParent, "parent", "", "Parent task ID for subtasks")
+	tasksAddCmd.Flags().StringVar(&taskLink, "link", "", "Attachment link / URL to include in notes")
+
+	tasksListsCmd.Flags().BoolVar(&taskJSON, "json", false, "Output as JSON")
 
 	tasksDoneCmd.Flags().StringVarP(&taskList, "list", "l", "@default", "Task list ID")
 	tasksDeleteCmd.Flags().StringVarP(&taskList, "list", "l", "@default", "Task list ID")
@@ -129,4 +213,7 @@ func init() {
 	tasksCmd.AddCommand(tasksAddCmd)
 	tasksCmd.AddCommand(tasksDoneCmd)
 	tasksCmd.AddCommand(tasksDeleteCmd)
+	tasksCmd.AddCommand(tasksListsCmd)
+	tasksCmd.AddCommand(tasksCreateListCmd)
+	tasksCmd.AddCommand(tasksDeleteListCmd)
 }

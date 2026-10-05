@@ -11,10 +11,45 @@ import (
 
 var sheetsCmd = &cobra.Command{
 	Use:   "sheets",
-	Short: "Read and append data to Google Sheets",
+	Short: "Create, read, append, update, and manage Google Sheets",
 }
 
 var sheetsJSON bool
+
+var sheetsCreateCmd = &cobra.Command{
+	Use:   "create [title]",
+	Short: "Create a new Google Spreadsheet",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := sheets.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		ss, err := svc.CreateSpreadsheet(args[0])
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Spreadsheet created: %s\nID: %s\nURL: %s\n", ss.Properties.Title, ss.SpreadsheetId, ss.SpreadsheetUrl)
+		return nil
+	},
+}
+
+var sheetsAddSheetCmd = &cobra.Command{
+	Use:   "add-sheet [spreadsheet_id] [sheet_title]",
+	Short: "Add a new sheet/tab to a spreadsheet",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := sheets.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		if err := svc.AddSheet(args[0], args[1]); err != nil {
+			return err
+		}
+		fmt.Printf("Sheet '%s' added successfully to %s\n", args[1], args[0])
+		return nil
+	},
+}
 
 var sheetsReadCmd = &cobra.Command{
 	Use:   "read [spreadsheet_id] [range]",
@@ -67,8 +102,34 @@ var sheetsAppendCmd = &cobra.Command{
 	},
 }
 
+var sheetsUpdateCmd = &cobra.Command{
+	Use:   "update [spreadsheet_id] [range] [col1] [col2] ...",
+	Short: "Update cells at range with values",
+	Args:  cobra.MinimumNArgs(3),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := sheets.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		sheetID := args[0]
+		targetRange := args[1]
+		var row []interface{}
+		for _, val := range args[2:] {
+			row = append(row, val)
+		}
+		if err := svc.UpdateRange(sheetID, targetRange, [][]interface{}{row}); err != nil {
+			return err
+		}
+		fmt.Printf("Updated %s at %s successfully\n", sheetID, targetRange)
+		return nil
+	},
+}
+
 func init() {
 	sheetsReadCmd.Flags().BoolVar(&sheetsJSON, "json", false, "Output as JSON")
+	sheetsCmd.AddCommand(sheetsCreateCmd)
+	sheetsCmd.AddCommand(sheetsAddSheetCmd)
 	sheetsCmd.AddCommand(sheetsReadCmd)
 	sheetsCmd.AddCommand(sheetsAppendCmd)
+	sheetsCmd.AddCommand(sheetsUpdateCmd)
 }

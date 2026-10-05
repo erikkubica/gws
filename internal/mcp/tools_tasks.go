@@ -15,6 +15,9 @@ func registerTasksTools(ctx context.Context, s *server.MCPServer) {
 	s.AddTool(buildTasksAddTool(), handleAddTask(ctx))
 	s.AddTool(buildTasksDoneTool(), handleDoneTask(ctx))
 	s.AddTool(buildTasksDeleteTool(), handleDeleteTask(ctx))
+	s.AddTool(buildTasksListListsTool(), handleListTaskLists(ctx))
+	s.AddTool(buildTasksCreateListTool(), handleCreateTaskList(ctx))
+	s.AddTool(buildTasksDeleteListTool(), handleDeleteTaskList(ctx))
 }
 
 func buildTasksListTool() mcp.Tool {
@@ -32,6 +35,8 @@ func buildTasksAddTool() mcp.Tool {
 		mcp.WithString("notes", mcp.Description("Task description or notes")),
 		mcp.WithString("due", mcp.Description("Due date in RFC3339 (e.g. '2026-10-10T00:00:00.000Z')")),
 		mcp.WithString("list_id", mcp.Description("Task list ID (default '@default')")),
+		mcp.WithString("parent_id", mcp.Description("Parent task ID for creating a subtask")),
+		mcp.WithString("link", mcp.Description("Attachment link or URL to append to notes")),
 	)
 }
 
@@ -48,6 +53,26 @@ func buildTasksDeleteTool() mcp.Tool {
 		mcp.WithDescription("Permanently delete a task from Google Tasks"),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to delete")),
 		mcp.WithString("list_id", mcp.Description("Task list ID (default '@default')")),
+	)
+}
+
+func buildTasksListListsTool() mcp.Tool {
+	return mcp.NewTool("tasks_list_tasklists",
+		mcp.WithDescription("List all task lists belonging to the user"),
+	)
+}
+
+func buildTasksCreateListTool() mcp.Tool {
+	return mcp.NewTool("tasks_create_tasklist",
+		mcp.WithDescription("Create a new task list"),
+		mcp.WithString("title", mcp.Required(), mcp.Description("Task list title")),
+	)
+}
+
+func buildTasksDeleteListTool() mcp.Tool {
+	return mcp.NewTool("tasks_delete_tasklist",
+		mcp.WithDescription("Delete a task list by ID"),
+		mcp.WithString("list_id", mcp.Required(), mcp.Description("Task list ID to delete")),
 	)
 }
 
@@ -76,10 +101,18 @@ func handleAddTask(ctx context.Context) server.ToolHandlerFunc {
 		}
 		title, _ := req.RequireString("title")
 		notes := req.GetString("notes", "")
+		link := req.GetString("link", "")
+		if link != "" {
+			if notes != "" {
+				notes += "\n"
+			}
+			notes += "Attachment: " + link
+		}
 		due := req.GetString("due", "")
 		listID := req.GetString("list_id", "@default")
+		parentID := req.GetString("parent_id", "")
 
-		t, err := svc.CreateTask(listID, title, notes, due)
+		t, err := svc.CreateTask(listID, parentID, title, notes, due)
 		if err != nil {
 			return mcp.NewToolResultError("create task error: " + err.Error()), nil
 		}
@@ -117,5 +150,49 @@ func handleDeleteTask(ctx context.Context) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("delete task error: " + err.Error()), nil
 		}
 		return mcp.NewToolResultText(fmt.Sprintf("Task %s deleted successfully", taskID)), nil
+	}
+}
+
+func handleListTaskLists(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := tasks.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		lists, err := svc.ListTaskLists()
+		if err != nil {
+			return mcp.NewToolResultError("list tasklists error: " + err.Error()), nil
+		}
+		b, _ := json.MarshalIndent(lists, "", "  ")
+		return mcp.NewToolResultText(string(b)), nil
+	}
+}
+
+func handleCreateTaskList(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := tasks.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		title, _ := req.RequireString("title")
+		tl, err := svc.CreateTaskList(title)
+		if err != nil {
+			return mcp.NewToolResultError("create tasklist error: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Task list '%s' created (ID: %s)", tl.Title, tl.Id)), nil
+	}
+}
+
+func handleDeleteTaskList(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := tasks.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		listID, _ := req.RequireString("list_id")
+		if err := svc.DeleteTaskList(listID); err != nil {
+			return mcp.NewToolResultError("delete tasklist error: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Task list %s deleted successfully", listID)), nil
 	}
 }

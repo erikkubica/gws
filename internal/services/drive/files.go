@@ -117,3 +117,63 @@ func (s *Service) DeleteFile(fileID string) error {
 	}
 	return nil
 }
+
+// DownloadFile downloads a remote file to a local destination path.
+func (s *Service) DownloadFile(fileID, destPath string) error {
+	f, err := s.client.Files.Get(fileID).Fields("id, name, mimeType").Do()
+	if err != nil {
+		return fmt.Errorf("inspect file metadata: %w", err)
+	}
+
+	body, err := s.getDownloadStream(fileID, f.MimeType)
+	if err != nil {
+		return err
+	}
+	defer body.Close()
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("create destination file: %w", err)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, body); err != nil {
+		return fmt.Errorf("write stream to disk: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) getDownloadStream(fileID, mimeType string) (io.ReadCloser, error) {
+	if strings.Contains(mimeType, "google-apps.document") {
+		res, err := s.client.Files.Export(fileID, "application/pdf").Download()
+		if err != nil {
+			return nil, fmt.Errorf("export doc as pdf: %w", err)
+		}
+		return res.Body, nil
+	}
+	if strings.Contains(mimeType, "google-apps.spreadsheet") {
+		res, err := s.client.Files.Export(fileID, "text/csv").Download()
+		if err != nil {
+			return nil, fmt.Errorf("export sheet as csv: %w", err)
+		}
+		return res.Body, nil
+	}
+	res, err := s.client.Files.Get(fileID).Download()
+	if err != nil {
+		return nil, fmt.Errorf("download binary file: %w", err)
+	}
+	return res.Body, nil
+}
+
+// CreateEmptyFile creates a new empty file or doc in Google Drive.
+func (s *Service) CreateEmptyFile(name, mimeType string) (*FileSummary, error) {
+	if mimeType == "" {
+		mimeType = "text/plain"
+	}
+	driveFile := &drive.File{Name: name, MimeType: mimeType}
+	res, err := s.client.Files.Create(driveFile).Fields("id, name, mimeType").Do()
+	if err != nil {
+		return nil, fmt.Errorf("create file: %w", err)
+	}
+	return &FileSummary{ID: res.Id, Name: res.Name, MimeType: res.MimeType}, nil
+}

@@ -13,7 +13,46 @@ type TaskSummary struct {
 	Notes   string `json:"notes,omitempty"`
 	Status  string `json:"status"`
 	Due     string `json:"due,omitempty"`
+	Parent  string `json:"parent,omitempty"`
 	Updated string `json:"updated,omitempty"`
+}
+
+// TaskListSummary holds metadata for task lists.
+type TaskListSummary struct {
+	ID      string `json:"id"`
+	Title   string `json:"title"`
+	Updated string `json:"updated,omitempty"`
+}
+
+// ListTaskLists returns all task lists belonging to the user.
+func (s *Service) ListTaskLists() ([]TaskListSummary, error) {
+	res, err := s.client.Tasklists.List().Do()
+	if err != nil {
+		return nil, fmt.Errorf("list tasklists: %w", err)
+	}
+	var lists []TaskListSummary
+	for _, l := range res.Items {
+		lists = append(lists, TaskListSummary{ID: l.Id, Title: l.Title, Updated: l.Updated})
+	}
+	return lists, nil
+}
+
+// CreateTaskList creates a new custom task list.
+func (s *Service) CreateTaskList(title string) (*tasks.TaskList, error) {
+	tl := &tasks.TaskList{Title: title}
+	res, err := s.client.Tasklists.Insert(tl).Do()
+	if err != nil {
+		return nil, fmt.Errorf("create tasklist: %w", err)
+	}
+	return res, nil
+}
+
+// DeleteTaskList deletes a task list by ID.
+func (s *Service) DeleteTaskList(tasklistID string) error {
+	if err := s.client.Tasklists.Delete(tasklistID).Do(); err != nil {
+		return fmt.Errorf("delete tasklist %s: %w", tasklistID, err)
+	}
+	return nil
 }
 
 // ListTasks lists tasks from a tasklist (defaulting to "@default").
@@ -37,23 +76,24 @@ func (s *Service) ListTasks(listID string, max int64) ([]TaskSummary, error) {
 			Notes:   t.Notes,
 			Status:  t.Status,
 			Due:     t.Due,
+			Parent:  t.Parent,
 			Updated: t.Updated,
 		})
 	}
 	return list, nil
 }
 
-// CreateTask adds a new task with title, notes, and optional due date (RFC3339).
-func (s *Service) CreateTask(listID, title, notes, due string) (*tasks.Task, error) {
+// CreateTask adds a new task with title, notes, due date, and optional parent subtask ID.
+func (s *Service) CreateTask(listID, parentID, title, notes, due string) (*tasks.Task, error) {
 	if listID == "" {
 		listID = "@default"
 	}
-	task := &tasks.Task{
-		Title: title,
-		Notes: notes,
-		Due:   due,
+	task := &tasks.Task{Title: title, Notes: notes, Due: due}
+	call := s.client.Tasks.Insert(listID, task)
+	if parentID != "" {
+		call = call.Parent(parentID)
 	}
-	res, err := s.client.Tasks.Insert(listID, task).Do()
+	res, err := call.Do()
 	if err != nil {
 		return nil, fmt.Errorf("create task: %w", err)
 	}

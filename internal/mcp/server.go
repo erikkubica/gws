@@ -21,6 +21,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	registerYouTubeTools(ctx, s)
 	registerTasksTools(ctx, s)
 	registerSheetsTools(ctx, s)
+	registerDocsTools(ctx, s)
 
 	return &Server{mcpServer: s}, nil
 }
