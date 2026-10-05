@@ -28,6 +28,7 @@ func init() {
 	rootCmd.AddCommand(tasksCmd)
 	rootCmd.AddCommand(sheetsCmd)
 	rootCmd.AddCommand(docsCmd)
+	rootCmd.AddCommand(meetCmd)
 }
 
 func printError(err error) {

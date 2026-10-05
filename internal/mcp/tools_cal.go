@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/erikkubica/gmcp/internal/services/calendar"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -15,6 +16,7 @@ func registerCalendarTools(ctx context.Context, s *server.MCPServer) {
 	s.AddTool(buildCalAddTool(), handleQuickAddEvent(ctx))
 	s.AddTool(buildCalCreateTool(), handleCreateEvent(ctx))
 	s.AddTool(buildCalDeleteTool(), handleDeleteEvent(ctx))
+	s.AddTool(buildCalRespondTool(), handleRespondEvent(ctx))
 }
 
 func buildCalListTool() mcp.Tool {
@@ -41,6 +43,17 @@ func buildCalCreateTool() mcp.Tool {
 		mcp.WithString("end", mcp.Required(), mcp.Description("End time in RFC3339")),
 		mcp.WithString("description", mcp.Description("Event description")),
 		mcp.WithString("location", mcp.Description("Event location")),
+		mcp.WithBoolean("with_meet", mcp.Description("Generate Google Meet video conference link")),
+		mcp.WithString("attendees", mcp.Description("Comma-separated attendee email addresses")),
+		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
+	)
+}
+
+func buildCalRespondTool() mcp.Tool {
+	return mcp.NewTool("calendar_respond_event",
+		mcp.WithDescription("Respond to a calendar event invitation (RSVP)"),
+		mcp.WithString("event_id", mcp.Required(), mcp.Description("The ID of the event to respond to")),
+		mcp.WithString("response", mcp.Required(), mcp.Description("RSVP response: 'accepted', 'declined', or 'tentative'")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
 	)
 }
@@ -98,15 +111,56 @@ func handleCreateEvent(ctx context.Context) server.ToolHandlerFunc {
 		title, _ := req.RequireString("title")
 		start, _ := req.RequireString("start")
 		end, _ := req.RequireString("end")
-		desc := req.GetString("description", "")
-		loc := req.GetString("location", "")
-		calID := req.GetString("calendar_id", "primary")
-
-		event, err := svc.CreateEvent(calID, title, desc, loc, start, end)
+		opts := calendar.EventOptions{
+			CalendarID:  req.GetString("calendar_id", "primary"),
+			Title:       title,
+			Description: req.GetString("description", ""),
+			Location:    req.GetString("location", ""),
+			Start:       start,
+			End:         end,
+			WithMeet:    req.GetBool("with_meet", false),
+			Attendees:   parseAttendeesList(req.GetString("attendees", "")),
+			SendUpdates: "all",
+		}
+		ev, err := svc.CreateEventWithOptions(opts)
 		if err != nil {
 			return mcp.NewToolResultError("create event error: " + err.Error()), nil
 		}
-		return mcp.NewToolResultText(fmt.Sprintf("Event '%s' created (ID: %s, Link: %s)", event.Summary, event.Id, event.HtmlLink)), nil
+		msg := fmt.Sprintf("Event '%s' created (ID: %s, Link: %s)", ev.Summary, ev.Id, ev.HtmlLink)
+		if ev.HangoutLink != "" {
+			msg += "\nGoogle Meet: " + ev.HangoutLink
+		}
+		return mcp.NewToolResultText(msg), nil
+	}
+}
+
+func parseAttendeesList(raw string) []string {
+	var attendees []string
+	if raw == "" {
+		return attendees
+	}
+	for _, a := range strings.Split(raw, ",") {
+		if s := strings.TrimSpace(a); s != "" {
+			attendees = append(attendees, s)
+		}
+	}
+	return attendees
+}
+
+func handleRespondEvent(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := calendar.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		id, _ := req.RequireString("event_id")
+		status, _ := req.RequireString("response")
+		calID := req.GetString("calendar_id", "primary")
+		ev, err := svc.RespondToEvent(calID, id, status, "all")
+		if err != nil {
+			return mcp.NewToolResultError("respond error: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("RSVP for '%s' set to: %s", ev.Summary, status)), nil
 	}
 }
 

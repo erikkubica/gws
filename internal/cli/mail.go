@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/erikkubica/gmcp/internal/services/calendar"
 	"github.com/erikkubica/gmcp/internal/services/gmail"
 	"github.com/spf13/cobra"
 )
@@ -24,6 +25,7 @@ var (
 	mailAttachments []string
 	mailDelay       string
 	mailAt          string
+	mailWithMeet    bool
 	mailJSON        bool
 )
 
@@ -97,9 +99,24 @@ var mailReadCmd = &cobra.Command{
 	},
 }
 
+func appendMeetIfNeeded(subj, to, body string) (string, error) {
+	if !mailWithMeet {
+		return body, nil
+	}
+	calSvc, err := calendar.NewService(context.Background())
+	if err != nil {
+		return "", err
+	}
+	_, meetURL, err := calSvc.CreateQuickMeet(subj, "", "", []string{to})
+	if err != nil {
+		return "", err
+	}
+	return body + fmt.Sprintf("\n\n---\nGoogle Meet Link: %s\n", meetURL), nil
+}
+
 var mailSendCmd = &cobra.Command{
 	Use:   "send",
-	Short: "Send an email message (supports --attach, --delay, --at)",
+	Short: "Send an email message (supports --attach, --meet, --delay, --at)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if mailTo == "" || mailSubj == "" || mailBody == "" {
 			return fmt.Errorf("flags --to, --subject, and --body are all required")
@@ -107,11 +124,15 @@ var mailSendCmd = &cobra.Command{
 		if err := waitSchedule(mailDelay, mailAt); err != nil {
 			return err
 		}
+		body, err := appendMeetIfNeeded(mailSubj, mailTo, mailBody)
+		if err != nil {
+			return err
+		}
 		svc, err := gmail.NewService(context.Background())
 		if err != nil {
 			return err
 		}
-		opts := gmail.EmailOptions{To: mailTo, Subject: mailSubj, Body: mailBody, Attachments: mailAttachments}
+		opts := gmail.EmailOptions{To: mailTo, Subject: mailSubj, Body: body, Attachments: mailAttachments}
 		res, err := svc.SendMessage(opts)
 		if err != nil {
 			return err
@@ -123,7 +144,7 @@ var mailSendCmd = &cobra.Command{
 
 var mailReplyCmd = &cobra.Command{
 	Use:   "reply [message_id]",
-	Short: "Reply to an existing message thread",
+	Short: "Reply to an existing message thread (supports --meet)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if mailBody == "" {
@@ -132,98 +153,19 @@ var mailReplyCmd = &cobra.Command{
 		if err := waitSchedule(mailDelay, mailAt); err != nil {
 			return err
 		}
+		body, err := appendMeetIfNeeded("Meeting Followup", mailTo, mailBody)
+		if err != nil {
+			return err
+		}
 		svc, err := gmail.NewService(context.Background())
 		if err != nil {
 			return err
 		}
-		res, err := svc.ReplyMessage(args[0], mailBody, mailAttachments)
+		res, err := svc.ReplyMessage(args[0], body, mailAttachments)
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Reply sent successfully! (ID: %s, Thread: %s)\n", res.Id, res.ThreadId)
-		return nil
-	},
-}
-
-var mailDraftCmd = &cobra.Command{
-	Use:   "draft",
-	Short: "Create an email draft",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if mailTo == "" || mailSubj == "" || mailBody == "" {
-			return fmt.Errorf("flags --to, --subject, and --body are all required")
-		}
-		svc, err := gmail.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		opts := gmail.EmailOptions{To: mailTo, Subject: mailSubj, Body: mailBody, Attachments: mailAttachments}
-		res, err := svc.CreateDraft(opts)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("Draft created successfully! (ID: %s)\n", res.Id)
-		return nil
-	},
-}
-
-var mailDraftsListCmd = &cobra.Command{
-	Use:   "drafts",
-	Short: "List drafts in the mailbox",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := gmail.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		drafts, err := svc.ListDrafts(mailMax)
-		if err != nil {
-			return err
-		}
-		if mailJSON {
-			b, _ := json.MarshalIndent(drafts, "", "  ")
-			fmt.Println(string(b))
-			return nil
-		}
-		for _, d := range drafts {
-			fmt.Printf("[%s] To: %s | %s\n  %s\n\n", d.ID, d.To, d.Subject, d.Snippet)
-		}
-		return nil
-	},
-}
-
-var mailSendDraftCmd = &cobra.Command{
-	Use:   "send-draft [draft_id]",
-	Short: "Send an existing draft (supports --delay, --at)",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := waitSchedule(mailDelay, mailAt); err != nil {
-			return err
-		}
-		svc, err := gmail.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		msg, err := svc.SendDraft(args[0])
-		if err != nil {
-			return err
-		}
-		fmt.Printf("Draft sent successfully! (ID: %s)\n", msg.Id)
-		return nil
-	},
-}
-
-var mailDeleteDraftCmd = &cobra.Command{
-	Use:   "delete-draft [draft_id]",
-	Short: "Delete an existing draft",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := gmail.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		if err := svc.DeleteDraft(args[0]); err != nil {
-			return err
-		}
-		fmt.Printf("Draft %s deleted successfully.\n", args[0])
 		return nil
 	},
 }
@@ -239,31 +181,20 @@ func init() {
 	mailSendCmd.Flags().StringVar(&mailSubj, "subject", "", "Subject line")
 	mailSendCmd.Flags().StringVar(&mailBody, "body", "", "Message body text")
 	mailSendCmd.Flags().StringSliceVarP(&mailAttachments, "attach", "a", nil, "Files to attach")
+	mailSendCmd.Flags().BoolVar(&mailWithMeet, "meet", false, "Generate and append Google Meet link")
 	mailSendCmd.Flags().StringVar(&mailDelay, "delay", "", "Delay sending (e.g. 10m, 1h)")
 	mailSendCmd.Flags().StringVar(&mailAt, "at", "", "Schedule send at RFC3339 timestamp")
 
 	mailReplyCmd.Flags().StringVar(&mailBody, "body", "", "Reply body text")
 	mailReplyCmd.Flags().StringSliceVarP(&mailAttachments, "attach", "a", nil, "Files to attach")
+	mailReplyCmd.Flags().BoolVar(&mailWithMeet, "meet", false, "Generate and append Google Meet link")
 	mailReplyCmd.Flags().StringVar(&mailDelay, "delay", "", "Delay sending (e.g. 10m, 1h)")
 	mailReplyCmd.Flags().StringVar(&mailAt, "at", "", "Schedule send at RFC3339 timestamp")
-
-	mailDraftCmd.Flags().StringVar(&mailTo, "to", "", "Recipient email")
-	mailDraftCmd.Flags().StringVar(&mailSubj, "subject", "", "Subject line")
-	mailDraftCmd.Flags().StringVar(&mailBody, "body", "", "Message body text")
-	mailDraftCmd.Flags().StringSliceVarP(&mailAttachments, "attach", "a", nil, "Files to attach")
-
-	mailDraftsListCmd.Flags().Int64VarP(&mailMax, "max", "m", 10, "Max drafts")
-	mailDraftsListCmd.Flags().BoolVar(&mailJSON, "json", false, "Output as JSON")
-
-	mailSendDraftCmd.Flags().StringVar(&mailDelay, "delay", "", "Delay sending (e.g. 10m, 1h)")
-	mailSendDraftCmd.Flags().StringVar(&mailAt, "at", "", "Schedule send at RFC3339 timestamp")
 
 	mailCmd.AddCommand(mailListCmd)
 	mailCmd.AddCommand(mailReadCmd)
 	mailCmd.AddCommand(mailSendCmd)
 	mailCmd.AddCommand(mailReplyCmd)
-	mailCmd.AddCommand(mailDraftCmd)
-	mailCmd.AddCommand(mailDraftsListCmd)
-	mailCmd.AddCommand(mailSendDraftCmd)
-	mailCmd.AddCommand(mailDeleteDraftCmd)
+
+	initDraftCommands()
 }
