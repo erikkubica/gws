@@ -3,6 +3,7 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/erikkubica/gmcp/internal/services/gmail"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -13,6 +14,7 @@ func registerGmailTools(ctx context.Context, s *server.MCPServer) {
 	s.AddTool(buildListTool(), handleListMessages(ctx))
 	s.AddTool(buildGetTool(), handleGetMessage(ctx))
 	s.AddTool(buildSendTool(), handleSendMessage(ctx))
+	s.AddTool(buildReplyTool(), handleReplyMessage(ctx))
 	s.AddTool(buildDraftTool(), handleCreateDraft(ctx))
 }
 
@@ -37,6 +39,16 @@ func buildSendTool() mcp.Tool {
 		mcp.WithString("to", mcp.Required(), mcp.Description("Recipient email address")),
 		mcp.WithString("subject", mcp.Required(), mcp.Description("Email subject line")),
 		mcp.WithString("body", mcp.Required(), mcp.Description("Email plain text body")),
+		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
+	)
+}
+
+func buildReplyTool() mcp.Tool {
+	return mcp.NewTool("gmail_reply_message",
+		mcp.WithDescription("Reply to an existing email message thread"),
+		mcp.WithString("message_id", mcp.Required(), mcp.Description("The original message ID to reply to")),
+		mcp.WithString("body", mcp.Required(), mcp.Description("Reply body text")),
+		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
 	)
 }
 
@@ -46,6 +58,7 @@ func buildDraftTool() mcp.Tool {
 		mcp.WithString("to", mcp.Required(), mcp.Description("Recipient email address")),
 		mcp.WithString("subject", mcp.Required(), mcp.Description("Email subject line")),
 		mcp.WithString("body", mcp.Required(), mcp.Description("Email plain text body")),
+		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
 	)
 }
 
@@ -94,11 +107,39 @@ func handleSendMessage(ctx context.Context) server.ToolHandlerFunc {
 		to, _ := req.RequireString("to")
 		subj, _ := req.RequireString("subject")
 		body, _ := req.RequireString("body")
-		res, err := svc.SendMessage(to, subj, body)
+		var atts []string
+		if a := req.GetString("attachment", ""); a != "" {
+			atts = append(atts, a)
+		}
+		opts := gmail.EmailOptions{To: to, Subject: subj, Body: body, Attachments: atts}
+		res, err := svc.SendMessage(opts)
 		if err != nil {
 			return mcp.NewToolResultError("send failed: " + err.Error()), nil
 		}
 		return mcp.NewToolResultText("Message sent successfully. ID: " + res.Id), nil
+	}
+}
+
+func handleReplyMessage(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := gmail.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		msgID, err := req.RequireString("message_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		body, _ := req.RequireString("body")
+		var atts []string
+		if a := req.GetString("attachment", ""); a != "" {
+			atts = append(atts, a)
+		}
+		res, err := svc.ReplyMessage(msgID, body, atts)
+		if err != nil {
+			return mcp.NewToolResultError("reply failed: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Reply sent successfully. ID: %s (Thread: %s)", res.Id, res.ThreadId)), nil
 	}
 }
 
@@ -111,7 +152,12 @@ func handleCreateDraft(ctx context.Context) server.ToolHandlerFunc {
 		to, _ := req.RequireString("to")
 		subj, _ := req.RequireString("subject")
 		body, _ := req.RequireString("body")
-		draft, err := svc.CreateDraft(to, subj, body)
+		var atts []string
+		if a := req.GetString("attachment", ""); a != "" {
+			atts = append(atts, a)
+		}
+		opts := gmail.EmailOptions{To: to, Subject: subj, Body: body, Attachments: atts}
+		draft, err := svc.CreateDraft(opts)
 		if err != nil {
 			return mcp.NewToolResultError("draft failed: " + err.Error()), nil
 		}

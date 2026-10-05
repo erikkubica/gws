@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/erikkubica/gmcp/internal/services/tasks"
@@ -18,6 +19,7 @@ var (
 	taskNotes string
 	taskDue   string
 	taskList  string
+	taskJSON  bool
 )
 
 var tasksListCmd = &cobra.Command{
@@ -31,6 +33,11 @@ var tasksListCmd = &cobra.Command{
 		items, err := svc.ListTasks(taskList, taskMax)
 		if err != nil {
 			return err
+		}
+		if taskJSON {
+			b, _ := json.MarshalIndent(items, "", "  ")
+			fmt.Println(string(b))
+			return nil
 		}
 		if len(items) == 0 {
 			fmt.Println("No tasks found.")
@@ -109,6 +116,7 @@ var tasksDeleteCmd = &cobra.Command{
 func init() {
 	tasksListCmd.Flags().Int64VarP(&taskMax, "max", "m", 20, "Max tasks")
 	tasksListCmd.Flags().StringVarP(&taskList, "list", "l", "@default", "Task list ID")
+	tasksListCmd.Flags().BoolVar(&taskJSON, "json", false, "Output as JSON")
 
 	tasksAddCmd.Flags().StringVarP(&taskNotes, "notes", "n", "", "Task notes/description")
 	tasksAddCmd.Flags().StringVarP(&taskDue, "due", "d", "", "Due date RFC3339 (e.g. 2026-10-10T00:00:00.000Z)")

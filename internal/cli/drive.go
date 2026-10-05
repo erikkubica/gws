@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/erikkubica/gmcp/internal/services/drive"
@@ -17,6 +18,7 @@ var (
 	driveQuery      string
 	driveMax        int64
 	driveUploadName string
+	driveJSON       bool
 )
 
 var driveListCmd = &cobra.Command{
@@ -30,6 +32,11 @@ var driveListCmd = &cobra.Command{
 		files, err := svc.ListFiles(driveQuery, driveMax)
 		if err != nil {
 			return err
+		}
+		if driveJSON {
+			b, _ := json.MarshalIndent(files, "", "  ")
+			fmt.Println(string(b))
+			return nil
 		}
 		for _, f := range files {
 			fmt.Printf("[%s] %-35s (%s)\n", f.ID, f.Name, f.MimeType)
@@ -95,6 +102,7 @@ var driveDeleteCmd = &cobra.Command{
 func init() {
 	driveListCmd.Flags().StringVarP(&driveQuery, "query", "q", "", "Filename query")
 	driveListCmd.Flags().Int64VarP(&driveMax, "max", "m", 10, "Max files")
+	driveListCmd.Flags().BoolVar(&driveJSON, "json", false, "Output as JSON")
 	driveUploadCmd.Flags().StringVarP(&driveUploadName, "name", "n", "", "Custom name on Drive (defaults to local filename)")
 
 	driveCmd.AddCommand(driveListCmd)

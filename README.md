@@ -6,12 +6,13 @@
 
 ## ✨ Features
 
-- **📬 Gmail:** Search, read full threads, send emails, and create drafts.
+- **📬 Gmail:** Search, read full threads, send emails with attachments (`--attach`), create drafts, and reply to existing threads (`reply`).
 - **📅 Google Calendar:** List upcoming events, natural language additions (`quick_add`), structured creation with exact timestamps, and event deletion.
 - **📁 Google Drive:** Search files, read file contents, upload local files, permanently delete files, and auto-export Google Docs (to plain text) and Google Sheets (to CSV).
+- **📊 Google Sheets:** Read cell ranges (`read`) and append rows (`append`).
 - **✅ Google Tasks:** List tasks, create todos with notes and due dates, mark as completed, and delete tasks.
 - **▶️ YouTube:** Search videos, fetch view counts, likes, and metadata.
-- **⚡ Dual Mode:** Functions both as a terminal CLI tool (`gmcp mail ...`) and an stdio MCP Server (`gmcp serve`).
+- **⚡ UNIX Composability:** All listing/querying commands support the `--json` flag to pipe directly into `jq`.
 - **🚀 Single Static Binary:** Fast startup (~3ms), zero runtime dependencies, cross-platform.
 
 ---
@@ -44,26 +45,42 @@ go build -o /usr/local/bin/gmcp ./cmd/gmcp
 
 ### Gmail
 ```bash
-# List recent emails
+# List recent emails (plain text or JSON)
 gmcp mail list --max 5
+gmcp mail list --max 5 --json | jq .
 
 # Search specific emails
 gmcp mail list --query "from:recruiter is:unread"
 
-# Read message by ID
-gmcp mail read <message_id>
+# Send an email with attachment
+gmcp mail send --to "client@example.com" \
+  --subject "Senior Developer Application" \
+  --body "Attached is my CV." \
+  --attach ~/Documents/erik-kubica-cv.pdf
 
-# Send an email
-gmcp mail send --to "client@example.com" --subject "Project Update" --body "Everything is deployed."
+# Reply to an existing email thread
+gmcp mail reply <message_id> \
+  --body "Dobrý deň, ďakujem za odpoveď. V prílohe posielam CV." \
+  --attach ~/Documents/erik-kubica-cv.pdf
 
 # Create a draft
 gmcp mail draft --to "client@example.com" --subject "Proposal" --body "Draft proposal content."
 ```
 
+### Google Sheets
+```bash
+# Read cell range (e.g. A1:E10)
+gmcp sheets read <spreadsheet_id> "Sheet1!A1:E10"
+gmcp sheets read <spreadsheet_id> "Sheet1!A1:E10" --json
+
+# Append a row of values
+gmcp sheets append <spreadsheet_id> "Sheet1!A1" "2026-10-06" "GoodRequest" "Contacted" "25 EUR/h"
+```
+
 ### Calendar
 ```bash
-# View upcoming events
-gmcp cal list --max 10
+# View upcoming events (with JSON support)
+gmcp cal list --max 10 --json
 
 # Natural language event creation
 gmcp cal add "Coffee with Marek on Friday at 10am"
@@ -78,7 +95,7 @@ gmcp cal delete <event_id>
 ### Google Tasks
 ```bash
 # List all tasks
-gmcp tasks list
+gmcp tasks list --json
 
 # Add a new task with notes and due date
 gmcp tasks add "Review B2B agency contract" --notes "Verify hourly rate and payment terms" --due "2026-10-10T00:00:00.000Z"
@@ -93,7 +110,7 @@ gmcp tasks delete <task_id>
 ### Drive
 ```bash
 # List / search Drive files
-gmcp drive list --query "CV"
+gmcp drive list --query "CV" --json
 
 # Read Google Doc / Sheet / file content
 gmcp drive read <file_id>
@@ -108,7 +125,7 @@ gmcp drive delete <file_id>
 ### YouTube
 ```bash
 # Search videos
-gmcp yt search "Golang MCP server tutorial" --max 5
+gmcp yt search "golang mcp" --max 5 --json
 
 # Video statistics
 gmcp yt info <video_id>
@@ -131,25 +148,13 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-### Available MCP Tools
+### Available MCP Tools (21 Tools)
 
-| Tool | Parameters | Description |
-| :--- | :--- | :--- |
-| `gmail_list_messages` | `query`, `max` | Search and list Gmail messages |
-| `gmail_get_message` | `id` (required) | Read complete body and headers of an email |
-| `gmail_send_message` | `to`, `subject`, `body` | Send an email directly |
-| `gmail_create_draft` | `to`, `subject`, `body` | Create a Gmail draft |
-| `calendar_list_events`| `max`, `calendar_id` | List upcoming calendar schedule |
-| `calendar_quick_add` | `text` (required) | Natural language calendar event creation |
-| `calendar_create_event`| `title`, `start`, `end`, `desc`, `loc` | Structured calendar event creation |
-| `calendar_delete_event`| `event_id` (required) | Delete a calendar event |
-| `tasks_list` | `max`, `list_id` | List tasks and todos |
-| `tasks_add` | `title` (required), `notes`, `due` | Add a new task |
-| `tasks_complete` | `task_id` (required) | Mark task as completed |
-| `tasks_delete` | `task_id` (required) | Delete a task |
-| `drive_list_files` | `query`, `max` | Search and list files in Google Drive |
-| `drive_read_file` | `file_id` (required) | Read/export document and sheet content |
-| `drive_upload_file` | `path` (required), `name` | Upload a local file to Drive |
-| `drive_delete_file` | `file_id` (required) | Permanently delete a file from Drive |
-| `youtube_search` | `query` (required), `max`| Search YouTube videos |
-| `youtube_video_details` | `video_id` (required) | Fetch stats, view counts, and details |
+| Service | MCP Tools |
+| :--- | :--- |
+| **Gmail** | `gmail_list_messages`, `gmail_get_message`, `gmail_send_message` (with attachment), `gmail_reply_message`, `gmail_create_draft` |
+| **Sheets** | `sheets_read_range`, `sheets_append_row` |
+| **Calendar** | `calendar_list_events`, `calendar_quick_add`, `calendar_create_event`, `calendar_delete_event` |
+| **Tasks** | `tasks_list`, `tasks_add`, `tasks_complete`, `tasks_delete` |
+| **Drive** | `drive_list_files`, `drive_read_file`, `drive_upload_file`, `drive_delete_file` |
+| **YouTube** | `youtube_search`, `youtube_video_details` |

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/erikkubica/gmcp/internal/services/youtube"
@@ -13,7 +14,10 @@ var ytCmd = &cobra.Command{
 	Short: "Search and inspect YouTube videos",
 }
 
-var ytMax int64
+var (
+	ytMax  int64
+	ytJSON bool
+)
 
 var ytSearchCmd = &cobra.Command{
 	Use:   "search [query]",
@@ -27,6 +31,11 @@ var ytSearchCmd = &cobra.Command{
 		videos, err := svc.SearchVideos(args[0], ytMax)
 		if err != nil {
 			return err
+		}
+		if ytJSON {
+			b, _ := json.MarshalIndent(videos, "", "  ")
+			fmt.Println(string(b))
+			return nil
 		}
 		for _, v := range videos {
 			fmt.Printf("[%s] %s\n  Channel: %s | Published: %s\n\n", v.ID, v.Title, v.ChannelName, v.PublishedAt)
@@ -56,6 +65,7 @@ var ytInfoCmd = &cobra.Command{
 
 func init() {
 	ytSearchCmd.Flags().Int64VarP(&ytMax, "max", "m", 10, "Max results")
+	ytSearchCmd.Flags().BoolVar(&ytJSON, "json", false, "Output as JSON")
 	ytCmd.AddCommand(ytSearchCmd)
 	ytCmd.AddCommand(ytInfoCmd)
 }

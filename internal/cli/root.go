@@ -26,6 +26,7 @@ func init() {
 	rootCmd.AddCommand(driveCmd)
 	rootCmd.AddCommand(ytCmd)
 	rootCmd.AddCommand(tasksCmd)
+	rootCmd.AddCommand(sheetsCmd)
 }
 
 func printError(err error) {

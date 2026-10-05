@@ -21,6 +21,7 @@ var Scopes = []string{
 	drive.DriveScope,
 	youtube.YoutubeReadonlyScope,
 	"https://www.googleapis.com/auth/tasks",
+	"https://www.googleapis.com/auth/spreadsheets",
 }
 
 // LoadOAuthConfig reads credentials.json and builds an oauth2.Config.

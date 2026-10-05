@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/erikkubica/gmcp/internal/services/calendar"
@@ -21,6 +22,7 @@ var (
 	calDesc     string
 	calLoc      string
 	calCalendar string
+	calJSON     bool
 )
 
 var calListCmd = &cobra.Command{
@@ -34,6 +36,11 @@ var calListCmd = &cobra.Command{
 		events, err := svc.ListUpcomingEvents(calCalendar, calMax)
 		if err != nil {
 			return err
+		}
+		if calJSON {
+			b, _ := json.MarshalIndent(events, "", "  ")
+			fmt.Println(string(b))
+			return nil
 		}
 		if len(events) == 0 {
 			fmt.Println("No upcoming events found.")
@@ -105,6 +112,7 @@ var calDeleteCmd = &cobra.Command{
 func init() {
 	calListCmd.Flags().Int64VarP(&calMax, "max", "m", 10, "Max events")
 	calListCmd.Flags().StringVarP(&calCalendar, "calendar", "c", "primary", "Calendar ID")
+	calListCmd.Flags().BoolVar(&calJSON, "json", false, "Output as JSON")
 
 	calAddCmd.Flags().StringVarP(&calCalendar, "calendar", "c", "primary", "Calendar ID")
 
