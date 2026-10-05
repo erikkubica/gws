@@ -70,3 +70,33 @@ func (s *Service) QuickAddEvent(calID, text string) (*calendar.Event, error) {
 	}
 	return event, nil
 }
+
+// CreateEvent creates a structured calendar event with explicit start and end times.
+func (s *Service) CreateEvent(calID, title, desc, loc, startISO, endISO string) (*calendar.Event, error) {
+	if calID == "" {
+		calID = "primary"
+	}
+	event := &calendar.Event{
+		Summary:     title,
+		Description: desc,
+		Location:    loc,
+		Start:       &calendar.EventDateTime{DateTime: startISO},
+		End:         &calendar.EventDateTime{DateTime: endISO},
+	}
+	res, err := s.client.Events.Insert(calID, event).Do()
+	if err != nil {
+		return nil, fmt.Errorf("insert calendar event: %w", err)
+	}
+	return res, nil
+}
+
+// DeleteEvent removes an event from the calendar by ID.
+func (s *Service) DeleteEvent(calID, eventID string) error {
+	if calID == "" {
+		calID = "primary"
+	}
+	if err := s.client.Events.Delete(calID, eventID).Do(); err != nil {
+		return fmt.Errorf("delete calendar event %s: %w", eventID, err)
+	}
+	return nil
+}

@@ -19,6 +19,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	registerCalendarTools(ctx, s)
 	registerDriveTools(ctx, s)
 	registerYouTubeTools(ctx, s)
+	registerTasksTools(ctx, s)
 
 	return &Server{mcpServer: s}, nil
 }
