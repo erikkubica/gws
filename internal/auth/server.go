@@ -29,6 +29,7 @@ func openBrowser(url string) error {
 // writeAuthResponse sends a pleasant HTML confirmation to the user browser.
 func writeAuthResponse(w http.ResponseWriter, title, message string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Connection", "close")
 	fmt.Fprintf(w, `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:50px;">
 		<h1 style="color:#10b981;">%s</h1>
 		<p>%s</p>
@@ -60,8 +61,8 @@ func LoginFlow(ctx context.Context) error {
 
 // handleCallback awaits the HTTP authorization response and exchanges code for token.
 func handleCallback(ctx context.Context, l net.Listener, cfg *oauth2.Config) error {
-	codeCh := make(chan string)
-	errCh := make(chan error)
+	codeCh := make(chan string, 1)
+	errCh := make(chan error, 1)
 
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +92,10 @@ func handleCallback(ctx context.Context, l net.Listener, cfg *oauth2.Config) err
 		if err := SaveToken(tok); err != nil {
 			return fmt.Errorf("save token: %w", err)
 		}
-		_ = server.Shutdown(context.Background())
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			_ = server.Close()
+		}()
 		return nil
 	case err := <-errCh:
 		return err
