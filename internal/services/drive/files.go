@@ -3,7 +3,11 @@ package drive
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
+
+	"google.golang.org/api/drive/v3"
 )
 
 // FileSummary represents minimal file metadata.
@@ -84,4 +88,32 @@ func (s *Service) exportFile(fileID, exportMime string) (string, error) {
 		return "", fmt.Errorf("read export stream: %w", err)
 	}
 	return string(b), nil
+}
+
+// UploadFile uploads a local file to Google Drive.
+func (s *Service) UploadFile(localPath, remoteName string) (*FileSummary, error) {
+	file, err := os.Open(localPath)
+	if err != nil {
+		return nil, fmt.Errorf("open local file: %w", err)
+	}
+	defer file.Close()
+
+	if remoteName == "" {
+		remoteName = filepath.Base(localPath)
+	}
+
+	driveFile := &drive.File{Name: remoteName}
+	res, err := s.client.Files.Create(driveFile).Media(file).Fields("id, name, mimeType, size").Do()
+	if err != nil {
+		return nil, fmt.Errorf("drive upload: %w", err)
+	}
+	return &FileSummary{ID: res.Id, Name: res.Name, MimeType: res.MimeType, Size: res.Size}, nil
+}
+
+// DeleteFile permanently deletes a file from Google Drive by its file ID.
+func (s *Service) DeleteFile(fileID string) error {
+	if err := s.client.Files.Delete(fileID).Do(); err != nil {
+		return fmt.Errorf("delete drive file %s: %w", fileID, err)
+	}
+	return nil
 }

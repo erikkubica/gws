@@ -10,12 +10,13 @@ import (
 
 var driveCmd = &cobra.Command{
 	Use:   "drive",
-	Short: "Search, list, and read files from Google Drive",
+	Short: "Search, list, read, upload, and delete files on Google Drive",
 }
 
 var (
-	driveQuery string
-	driveMax   int64
+	driveQuery      string
+	driveMax        int64
+	driveUploadName string
 )
 
 var driveListCmd = &cobra.Command{
@@ -55,9 +56,49 @@ var driveReadCmd = &cobra.Command{
 	},
 }
 
+var driveUploadCmd = &cobra.Command{
+	Use:   "upload [file_path]",
+	Short: "Upload a local file to Google Drive",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := drive.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		uploaded, err := svc.UploadFile(args[0], driveUploadName)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("File uploaded successfully!\nID: %s\nName: %s\nSize: %d bytes\n",
+			uploaded.ID, uploaded.Name, uploaded.Size)
+		return nil
+	},
+}
+
+var driveDeleteCmd = &cobra.Command{
+	Use:   "delete [file_id]",
+	Short: "Permanently delete a file from Google Drive",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := drive.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		if err := svc.DeleteFile(args[0]); err != nil {
+			return err
+		}
+		fmt.Printf("File %s deleted successfully.\n", args[0])
+		return nil
+	},
+}
+
 func init() {
 	driveListCmd.Flags().StringVarP(&driveQuery, "query", "q", "", "Filename query")
 	driveListCmd.Flags().Int64VarP(&driveMax, "max", "m", 10, "Max files")
+	driveUploadCmd.Flags().StringVarP(&driveUploadName, "name", "n", "", "Custom name on Drive (defaults to local filename)")
+
 	driveCmd.AddCommand(driveListCmd)
 	driveCmd.AddCommand(driveReadCmd)
+	driveCmd.AddCommand(driveUploadCmd)
+	driveCmd.AddCommand(driveDeleteCmd)
 }
