@@ -16,6 +16,8 @@ func registerGmailTools(ctx context.Context, s *server.MCPServer) {
 	s.AddTool(buildSendTool(), handleSendMessage(ctx))
 	s.AddTool(buildReplyTool(), handleReplyMessage(ctx))
 	s.AddTool(buildDraftTool(), handleCreateDraft(ctx))
+	s.AddTool(buildDraftsListTool(), handleListDrafts(ctx))
+	s.AddTool(buildSendDraftTool(), handleSendDraft(ctx))
 }
 
 func buildListTool() mcp.Tool {
@@ -59,6 +61,20 @@ func buildDraftTool() mcp.Tool {
 		mcp.WithString("subject", mcp.Required(), mcp.Description("Email subject line")),
 		mcp.WithString("body", mcp.Required(), mcp.Description("Email plain text body")),
 		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
+	)
+}
+
+func buildDraftsListTool() mcp.Tool {
+	return mcp.NewTool("gmail_list_drafts",
+		mcp.WithDescription("List existing draft messages in Gmail"),
+		mcp.WithNumber("max", mcp.Description("Max number of drafts to return (default 10)")),
+	)
+}
+
+func buildSendDraftTool() mcp.Tool {
+	return mcp.NewTool("gmail_send_draft",
+		mcp.WithDescription("Send an existing draft email by its draft ID"),
+		mcp.WithString("draft_id", mcp.Required(), mcp.Description("The ID of the draft to send")),
 	)
 }
 
@@ -162,5 +178,39 @@ func handleCreateDraft(ctx context.Context) server.ToolHandlerFunc {
 			return mcp.NewToolResultError("draft failed: " + err.Error()), nil
 		}
 		return mcp.NewToolResultText("Draft created successfully. ID: " + draft.Id), nil
+	}
+}
+
+func handleListDrafts(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := gmail.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		max := int64(req.GetInt("max", 10))
+		drafts, err := svc.ListDrafts(max)
+		if err != nil {
+			return mcp.NewToolResultError("list drafts failed: " + err.Error()), nil
+		}
+		b, _ := json.MarshalIndent(drafts, "", "  ")
+		return mcp.NewToolResultText(string(b)), nil
+	}
+}
+
+func handleSendDraft(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := gmail.NewService(ctx)
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		id, err := req.RequireString("draft_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		msg, err := svc.SendDraft(id)
+		if err != nil {
+			return mcp.NewToolResultError("send draft failed: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Draft sent successfully. ID: %s", msg.Id)), nil
 	}
 }
