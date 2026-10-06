@@ -3,3 +3,4 @@ bin/
 *.log
 credentials.json
 token.json
+.DS_Store

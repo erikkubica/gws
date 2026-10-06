@@ -6,35 +6,44 @@
 
 ## ✨ Features
 
-- **📬 Gmail:** Search, read full threads, send emails with attachments (`--attach`), create drafts, and reply to existing threads (`reply`).
-- **📅 Google Calendar:** List upcoming events, natural language additions (`quick_add`), structured creation with exact timestamps, and event deletion.
-- **📁 Google Drive:** Search files, read file contents, upload local files, permanently delete files, and auto-export Google Docs (to plain text) and Google Sheets (to CSV).
-- **📊 Google Sheets:** Read cell ranges (`read`) and append rows (`append`).
-- **✅ Google Tasks:** List tasks, create todos with notes and due dates, mark as completed, and delete tasks.
+- **📬 Gmail:** Search, read full threads, send emails with attachments (`--attach`), reply to threads (`reply`), scheduled send (`--delay`, `--at`), and draft management (`draft`, `drafts`, `send-draft`, `delete-draft`).
+- **📅 Google Calendar:** List upcoming events, natural language additions (`add`), structured creation with exact timestamps (`create`), attendee invitations, and complete RSVP response handling (`accept`, `decline`, `maybe`, `respond`).
+- **📹 Google Meet:** Instantly provision persistent video conference rooms (`gmcp meet create`), send invitations directly via email (`gmcp meet send`), or attach to calendar events and emails with `--meet`.
+- **📁 Google Drive:** Search files, read file contents, download files, upload local files, create files, permanently delete files, and auto-export Google Docs (to plain text/PDF) and Google Sheets (to CSV).
+- **📋 Google Tasks:** Full lifecycle for task lists (`lists`, `create-list`, `delete-list`), todos with notes and due dates, hierarchical subtasks (`--parent`), attachment links (`--link`), and completion marking (`done`).
+- **📊 Google Sheets:** Create spreadsheets (`create`), add sheet tabs (`add-sheet`), read cell ranges (`read`), append rows (`append`), and update cells (`update`).
+- **📄 Google Docs:** Create documents (`create`), read document text (`read`), and append text (`append`).
 - **▶️ YouTube:** Search videos, fetch view counts, likes, and metadata.
 - **⚡ UNIX Composability:** All listing/querying commands support the `--json` flag to pipe directly into `jq`.
-- **🚀 Single Static Binary:** Fast startup (~3ms), zero runtime dependencies, cross-platform.
+- **🚀 Single Static Binary:** Fast startup (~3ms), zero runtime dependencies, cross-platform Go architecture.
 
 ---
 
 ## 🛠️ Installation
 
 ```bash
-cd ~/.gemini/antigravity/scratch/gmcp
-go build -o /usr/local/bin/gmcp ./cmd/gmcp
+# Clone and build
+git clone https://github.com/erikkubica/gmcp.git
+cd gmcp
+go build -o ~/.local/bin/gmcp ./cmd/gmcp
+```
+
+Or install via `go install`:
+```bash
+go install github.com/erikkubica/gmcp/cmd/gmcp@latest
 ```
 
 ---
 
 ## 🔑 Authentication
 
-1. Make sure your `credentials.json` is located at:
+1. Place your Google Cloud OAuth `credentials.json` at:
    `~/.config/gmcp/credentials.json`
 2. Run the interactive browser login:
    ```bash
    gmcp auth login
    ```
-3. Check status anytime:
+3. Check authentication status anytime:
    ```bash
    gmcp auth status
    ```
@@ -52,41 +61,52 @@ gmcp mail list --max 5 --json | jq .
 # Search specific emails
 gmcp mail list --query "from:recruiter is:unread"
 
-# Send an email with attachment
+# Send email with attachment and auto-generated Google Meet link
 gmcp mail send --to "client@example.com" \
-  --subject "Senior Developer Application" \
-  --body "Attached is my CV." \
-  --attach ~/Documents/erik-kubica-cv.pdf
+  --subject "Project Kickoff" \
+  --body "Looking forward to speaking." \
+  --meet \
+  --attach ./contract.pdf
 
-# Reply to an existing email thread
-gmcp mail reply <message_id> \
-  --body "Dobrý deň, ďakujem za odpoveď. V prílohe posielam CV." \
-  --attach ~/Documents/erik-kubica-cv.pdf
+# Schedule send
+gmcp mail send --to "client@example.com" --subject "Update" --body "Hello" --delay 10m
 
-# Create a draft
-gmcp mail draft --to "client@example.com" --subject "Proposal" --body "Draft proposal content."
+# Reply to an existing thread
+gmcp mail reply <message_id> --body "Thanks, let's meet tomorrow." --meet
+
+# Manage drafts
+gmcp mail draft --to "lead@company.com" --subject "Proposal" --body "Draft proposal content."
+gmcp mail drafts
+gmcp mail send-draft <draft_id>
+gmcp mail delete-draft <draft_id>
 ```
 
-### Google Sheets
+### Google Meet & Calendar
 ```bash
-# Read cell range (e.g. A1:E10)
-gmcp sheets read <spreadsheet_id> "Sheet1!A1:E10"
-gmcp sheets read <spreadsheet_id> "Sheet1!A1:E10" --json
+# Instant Google Meet generation
+gmcp meet create "Team Sync" --start "2026-10-06T15:00:00+07:00" --end "2026-10-06T15:30:00+07:00"
 
-# Append a row of values
-gmcp sheets append <spreadsheet_id> "Sheet1!A1" "2026-10-06" "GoodRequest" "Contacted" "25 EUR/h"
-```
+# Send Meet invitation via email
+gmcp meet send "1-on-1 Catchup" --to "partner@example.com"
 
-### Calendar
-```bash
-# View upcoming events (with JSON support)
+# View upcoming events (shows Google Meet links and RSVP status)
 gmcp cal list --max 10 --json
 
 # Natural language event creation
-gmcp cal add "Coffee with Marek on Friday at 10am"
+gmcp cal add "Lunch with Alex tomorrow at 1pm"
 
-# Structured event creation with exact RFC3339 timestamps
-gmcp cal create --title "Technical Interview" --start "2026-10-08T10:00:00+07:00" --end "2026-10-08T11:00:00+07:00" --loc "Google Meet"
+# Structured event with Google Meet and attendee invitations
+gmcp cal create \
+  --title "Client Architecture Review" \
+  --start "2026-10-08T10:00:00+07:00" \
+  --end "2026-10-08T11:00:00+07:00" \
+  --meet \
+  --attendees "lead@client.com,dev@client.com"
+
+# RSVP to event invitations
+gmcp cal accept <event_id>
+gmcp cal decline <event_id>
+gmcp cal maybe <event_id>
 
 # Delete event
 gmcp cal delete <event_id>
@@ -94,53 +114,77 @@ gmcp cal delete <event_id>
 
 ### Google Tasks
 ```bash
-# List all tasks
-gmcp tasks list --json
+# List and manage task lists
+gmcp tasks lists
+gmcp tasks create-list "Q4 Roadmap"
+gmcp tasks delete-list <list_id>
 
-# Add a new task with notes and due date
-gmcp tasks add "Review B2B agency contract" --notes "Verify hourly rate and payment terms" --due "2026-10-10T00:00:00.000Z"
+# List tasks (shows indented subtasks tree)
+gmcp tasks list --list <list_id> --json
+
+# Add task with notes, due date, and attachment link
+gmcp tasks add "Review Sprint Backlog" \
+  --notes "Prioritize auth features" \
+  --due "2026-10-10T00:00:00.000Z" \
+  --link "https://docs.google.com/spreadsheets/d/..."
+
+# Add nested subtask
+gmcp tasks add "Verify OAuth refresh token" --parent <parent_task_id>
 
 # Mark task as completed
 gmcp tasks done <task_id>
-
-# Delete task
-gmcp tasks delete <task_id>
 ```
 
-### Drive
+### Google Sheets & Docs
+```bash
+# Create spreadsheet & add sheets
+gmcp sheets create "Project Budget"
+gmcp sheets add-sheet <spreadsheet_id> "Expenses"
+
+# Append row & update cells
+gmcp sheets append <spreadsheet_id> "Expenses!A1" "2026-10-06" "Server Hosting" "45 EUR"
+gmcp sheets update <spreadsheet_id> "Expenses!C1" "50 EUR"
+
+# Read cell range
+gmcp sheets read <spreadsheet_id> "Expenses!A1:D10" --json
+
+# Create & read Google Docs
+gmcp docs create "Meeting Notes"
+gmcp docs read <doc_id>
+gmcp docs append <doc_id> "Key decisions made during sprint kickoff.\n"
+```
+
+### Google Drive
 ```bash
 # List / search Drive files
-gmcp drive list --query "CV" --json
+gmcp drive list --query "report" --json
 
-# Read Google Doc / Sheet / file content
+# Read & export Google Docs / Sheets / text files
 gmcp drive read <file_id>
 
-# Upload a local file
-gmcp drive upload ./report.pdf --name "Final_Report.pdf"
+# Download & upload files
+gmcp drive download <file_id> ./downloaded_report.pdf
+gmcp drive upload ./document.pdf --name "Final_Spec.pdf"
 
-# Delete a file from Drive
+# Delete file
 gmcp drive delete <file_id>
-```
-
-### YouTube
-```bash
-# Search videos
-gmcp yt search "golang mcp" --max 5 --json
-
-# Video statistics
-gmcp yt info <video_id>
 ```
 
 ---
 
-## 🤖 MCP Server Setup
+## 🤖 Model Context Protocol (MCP) Server
 
-Add this to your `claude_desktop_config.json`:
+Run `gmcp` as a high-performance stdio MCP server for Claude Desktop, Cursor, Zed, or Antigravity:
 
+```bash
+gmcp serve
+```
+
+### Claude Desktop Configuration (`claude_desktop_config.json`)
 ```json
 {
   "mcpServers": {
-    "google-workspace": {
+    "gmcp": {
       "command": "gmcp",
       "args": ["serve"]
     }
@@ -148,13 +192,21 @@ Add this to your `claude_desktop_config.json`:
 }
 ```
 
-### Available MCP Tools (21 Tools)
+### Available MCP Tools (28 Tools)
 
 | Service | MCP Tools |
 | :--- | :--- |
-| **Gmail** | `gmail_list_messages`, `gmail_get_message`, `gmail_send_message` (with attachment), `gmail_reply_message`, `gmail_create_draft` |
-| **Sheets** | `sheets_read_range`, `sheets_append_row` |
-| **Calendar** | `calendar_list_events`, `calendar_quick_add`, `calendar_create_event`, `calendar_delete_event` |
-| **Tasks** | `tasks_list`, `tasks_add`, `tasks_complete`, `tasks_delete` |
+| **Gmail** | `gmail_list_messages`, `gmail_get_message`, `gmail_send_message`, `gmail_reply_message`, `gmail_create_draft`, `gmail_list_drafts`, `gmail_send_draft` |
+| **Calendar** | `calendar_list_events`, `calendar_quick_add`, `calendar_create_event` (with Meet & attendees), `calendar_delete_event`, `calendar_respond_event` (RSVP) |
+| **Meet** | `meet_create_session` |
 | **Drive** | `drive_list_files`, `drive_read_file`, `drive_upload_file`, `drive_delete_file` |
+| **Tasks** | `tasks_list`, `tasks_add` (with subtasks & links), `tasks_complete`, `tasks_delete`, `tasks_list_tasklists`, `tasks_create_tasklist`, `tasks_delete_tasklist` |
+| **Sheets** | `sheets_read_range`, `sheets_append_row` |
+| **Docs** | `docs_create_document`, `docs_read_document`, `docs_append_text` |
 | **YouTube** | `youtube_search`, `youtube_video_details` |
+
+---
+
+## 📄 License
+
+MIT
