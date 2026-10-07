@@ -135,13 +135,11 @@ func pollAndFlush(svc *chat.Service, space string, buffer *chat.BurstBuffer) {
 	recent, err := svc.ListMessagesWithOrder(space, 10, "DESC")
 	if err == nil {
 		for i := len(recent) - 1; i >= 0; i-- {
-			buffer.Add(recent[i], time.Now())
+			buffer.Add(space, recent[i], time.Now())
 		}
 	}
-	if buffer.ShouldFlush(time.Now()) {
-		if flushed := buffer.Flush(); len(flushed) > 0 {
-			dispatchBurst(space, flushed)
-		}
+	for _, burst := range buffer.FlushedBursts(time.Now()) {
+		dispatchBurst(burst.SpaceID, burst.Messages)
 	}
 }
 
@@ -153,15 +151,13 @@ func pollAndFlushAll(svc *chat.Service, buffer *chat.BurstBuffer, activities map
 				activities[sp.Name] = sp.LastActiveTime
 				msgs, _ := svc.ListMessagesWithOrder(sp.Name, 5, "DESC")
 				for i := len(msgs) - 1; i >= 0; i-- {
-					buffer.Add(msgs[i], time.Now())
+					buffer.Add(sp.Name, msgs[i], time.Now())
 				}
 			}
 		}
 	}
-	if buffer.ShouldFlush(time.Now()) {
-		if flushed := buffer.Flush(); len(flushed) > 0 {
-			dispatchBurst("all", flushed)
-		}
+	for _, burst := range buffer.FlushedBursts(time.Now()) {
+		dispatchBurst(burst.SpaceID, burst.Messages)
 	}
 }
 
@@ -170,14 +166,14 @@ func dispatchBurst(space string, msgs []*chat.MessageInfo) {
 	if watchJSON {
 		fmt.Println(string(payload))
 	} else {
-		printFlushedBurst(msgs)
+		printFlushedBurst(space, msgs)
 	}
 	sendNotificationIfNeeded(space, msgs)
 	executeCommandIfNeeded(space, msgs, payload)
 }
 
-func printFlushedBurst(msgs []*chat.MessageInfo) {
-	fmt.Printf("\n--- Flushed Burst (%d message(s)) ---\n", len(msgs))
+func printFlushedBurst(space string, msgs []*chat.MessageInfo) {
+	fmt.Printf("\n--- Flushed Burst from %s (%d message(s)) ---\n", space, len(msgs))
 	for _, m := range msgs {
 		printMessageItem(m)
 	}

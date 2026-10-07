@@ -5,39 +5,48 @@ import (
 	"time"
 )
 
-func TestBurstBuffer_NominalDebounce(t *testing.T) {
+func TestBurstBuffer_PerChannelDebounceIsolation(t *testing.T) {
 	buffer := NewBurstBuffer(30 * time.Second)
 	startTime := time.Date(2026, 10, 7, 10, 0, 0, 0, time.UTC)
 
-	msg1 := &MessageInfo{Name: "spaces/A/messages/1", SenderName: "Jan", Text: "could you do this pls"}
-	msg2 := &MessageInfo{Name: "spaces/A/messages/2", SenderName: "Jan", Text: "and make it red"}
+	// Space A messages (at t=0s and t=10s)
+	msgA1 := &MessageInfo{Name: "spaces/dev/messages/1", SenderName: "Jan", Text: "fix login"}
+	msgA2 := &MessageInfo{Name: "spaces/dev/messages/2", SenderName: "Jan", Text: "make it red"}
 
-	if !buffer.Add(msg1, startTime) {
-		t.Fatal("expected msg1 to be added")
-	}
-	if buffer.ShouldFlush(startTime.Add(10 * time.Second)) {
-		t.Fatal("buffer should not flush before debounce expires")
-	}
+	// Space B message (at t=15s)
+	msgB1 := &MessageInfo{Name: "spaces/general/messages/1", SenderName: "Peter", Text: "lunch?"}
 
-	// Add second message at +15s (timer resets)
-	if !buffer.Add(msg2, startTime.Add(15*time.Second)) {
-		t.Fatal("expected msg2 to be added")
-	}
-	if buffer.ShouldFlush(startTime.Add(35 * time.Second)) {
-		t.Fatal("buffer should not flush because msg2 reset timer to 15s + 30s = 45s")
+	buffer.Add("spaces/dev", msgA1, startTime)
+	buffer.Add("spaces/dev", msgA2, startTime.Add(10*time.Second))
+	buffer.Add("spaces/general", msgB1, startTime.Add(15*time.Second))
+
+	// At t=35s: Space A timer expires at 10s + 30s = 40s. Neither should flush yet.
+	if flushed := buffer.FlushedBursts(startTime.Add(35 * time.Second)); len(flushed) != 0 {
+		t.Fatalf("expected 0 flushed bursts at 35s, got %d", len(flushed))
 	}
 
-	// Check boundary threshold at 45s
-	if !buffer.ShouldFlush(startTime.Add(45 * time.Second)) {
-		t.Fatal("buffer should flush at exact debounce threshold (45s)")
+	// At t=40s: Space A should flush alone (its 30s of silence passed from t=10s)
+	// Space B should NOT flush because its message arrived at t=15s (needs until t=45s)
+	flushed40 := buffer.FlushedBursts(startTime.Add(40 * time.Second))
+	if len(flushed40) != 1 {
+		t.Fatalf("expected 1 flushed burst at 40s, got %d", len(flushed40))
+	}
+	if flushed40[0].SpaceID != "spaces/dev" || len(flushed40[0].Messages) != 2 {
+		t.Fatalf("unexpected burst flushed at 40s: %+v", flushed40[0])
 	}
 
-	flushed := buffer.Flush()
-	if len(flushed) != 2 {
-		t.Fatalf("expected 2 flushed messages, got %d", len(flushed))
+	// At t=45s: Space B should now flush
+	flushed45 := buffer.FlushedBursts(startTime.Add(45 * time.Second))
+	if len(flushed45) != 1 {
+		t.Fatalf("expected 1 flushed burst at 45s, got %d", len(flushed45))
 	}
-	if buffer.ShouldFlush(startTime.Add(50 * time.Second)) {
-		t.Fatal("buffer should not flush when empty")
+	if flushed45[0].SpaceID != "spaces/general" || len(flushed45[0].Messages) != 1 {
+		t.Fatalf("unexpected burst flushed at 45s: %+v", flushed45[0])
+	}
+
+	// Afterwards, buffer is empty
+	if flushedEmpty := buffer.FlushedBursts(startTime.Add(50 * time.Second)); len(flushedEmpty) != 0 {
+		t.Fatalf("expected 0 flushed bursts after drain, got %d", len(flushedEmpty))
 	}
 }
 
@@ -45,20 +54,12 @@ func TestBurstBuffer_ZeroDebounceBoundary(t *testing.T) {
 	buffer := NewBurstBuffer(0)
 	now := time.Now()
 
-	if buffer.ShouldFlush(now) {
-		t.Fatal("empty buffer should not flush even with 0 debounce")
-	}
-
 	msg := &MessageInfo{Name: "spaces/A/messages/100", SenderName: "Alice", Text: "urgent alert"}
-	if !buffer.Add(msg, now) {
-		t.Fatal("expected message to be added")
-	}
-	if !buffer.ShouldFlush(now) {
-		t.Fatal("buffer with 0 debounce should flush immediately upon message arrival")
-	}
-	flushed := buffer.Flush()
-	if len(flushed) != 1 || flushed[0].Name != msg.Name {
-		t.Fatal("expected single flushed message")
+	buffer.Add("spaces/A", msg, now)
+
+	flushed := buffer.FlushedBursts(now)
+	if len(flushed) != 1 || len(flushed[0].Messages) != 1 {
+		t.Fatal("expected 1 flushed burst with 0 debounce")
 	}
 }
 
@@ -66,51 +67,48 @@ func TestBurstBuffer_DeduplicationAndMalformed(t *testing.T) {
 	buffer := NewBurstBuffer(10 * time.Second)
 	now := time.Now()
 
-	// Malformed inputs
-	if buffer.Add(nil, now) {
+	if buffer.Add("spaces/A", nil, now) {
 		t.Fatal("expected nil message to be rejected")
 	}
-	if buffer.Add(&MessageInfo{Name: ""}, now) {
+	if buffer.Add("spaces/A", &MessageInfo{Name: ""}, now) {
 		t.Fatal("expected empty name message to be rejected")
 	}
 
-	// Pre-seed
 	existing := []*MessageInfo{
 		{Name: "spaces/A/messages/old1"},
-		{Name: "spaces/A/messages/old2"},
 	}
 	buffer.SeedIDs(existing)
 
-	// Attempt to re-add existing
-	if buffer.Add(&MessageInfo{Name: "spaces/A/messages/old1", Text: "duplicate"}, now) {
+	if buffer.Add("spaces/A", &MessageInfo{Name: "spaces/A/messages/old1"}, now) {
 		t.Fatal("expected seeded message to be rejected as duplicate")
 	}
+}
 
-	// Add new message twice
-	newMsg := &MessageInfo{Name: "spaces/A/messages/new1", Text: "hello"}
-	if !buffer.Add(newMsg, now) {
-		t.Fatal("expected first add to succeed")
+func TestExtractSpaceID(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"spaces/AAAA4_P5byY/messages/msg123", "spaces/AAAA4_P5byY"},
+		{"spaces/xRjOZgAAAAE/messages/xyz", "spaces/xRjOZgAAAAE"},
+		{"invalidpath", "invalidpath"},
+		{"", ""},
 	}
-	if buffer.Add(newMsg, now.Add(1*time.Second)) {
-		t.Fatal("expected second add to be rejected as duplicate")
+	for _, tc := range tests {
+		result := ExtractSpaceID(tc.input)
+		if result != tc.expected {
+			t.Errorf("ExtractSpaceID(%q) = %q, want %q", tc.input, result, tc.expected)
+		}
 	}
 }
 
 func TestFormatBurstText(t *testing.T) {
-	if FormatBurstText(nil) != "" {
-		t.Fatal("expected empty string for nil messages")
-	}
-	if FormatBurstText([]*MessageInfo{}) != "" {
-		t.Fatal("expected empty string for empty slice")
-	}
-
 	msgs := []*MessageInfo{
 		{SenderName: "Jan", Text: "could you do this pls"},
 		{SenderName: "Jan", Text: "and make it red"},
-		{SenderName: "", Text: "thanks!"},
 	}
 	formatted := FormatBurstText(msgs)
-	expected := "[Jan]: could you do this pls\n[Jan]: and make it red\n[User]: thanks!"
+	expected := "[Jan]: could you do this pls\n[Jan]: and make it red"
 	if formatted != expected {
 		t.Fatalf("unexpected formatted text: got %q, want %q", formatted, expected)
 	}

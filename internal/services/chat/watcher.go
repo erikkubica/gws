@@ -7,21 +7,31 @@ import (
 	"time"
 )
 
-// BurstBuffer aggregates rapid message bursts and flushes after a debounce duration.
+// FlushedBurst contains the messages belonging to an expired debounce window for a specific space.
+type FlushedBurst struct {
+	SpaceID  string         `json:"space_id"`
+	Messages []*MessageInfo `json:"messages"`
+}
+
+type spaceBuffer struct {
+	lastMessageTime time.Time
+	messages        []*MessageInfo
+}
+
+// BurstBuffer manages isolated debounce buffers per Google Chat space.
 type BurstBuffer struct {
 	mu               sync.Mutex
 	debounceDuration time.Duration
-	lastMessageTime  time.Time
-	messages         []*MessageInfo
+	buffers          map[string]*spaceBuffer
 	seenIDs          map[string]bool
 }
 
-// NewBurstBuffer creates a new buffer for debouncing chat messages.
+// NewBurstBuffer creates a new buffer for per-space message debouncing.
 func NewBurstBuffer(debounce time.Duration) *BurstBuffer {
 	return &BurstBuffer{
 		debounceDuration: debounce,
+		buffers:          make(map[string]*spaceBuffer),
 		seenIDs:          make(map[string]bool),
-		messages:         make([]*MessageInfo, 0),
 	}
 }
 
@@ -36,8 +46,8 @@ func (b *BurstBuffer) SeedIDs(msgs []*MessageInfo) {
 	}
 }
 
-// Add appends a new message to the buffer and updates the burst timer.
-func (b *BurstBuffer) Add(msg *MessageInfo, arrivalTime time.Time) bool {
+// Add appends a message to its space's isolated buffer and resets that space's debounce timer.
+func (b *BurstBuffer) Add(spaceID string, msg *MessageInfo, arrivalTime time.Time) bool {
 	if msg == nil || msg.Name == "" {
 		return false
 	}
@@ -47,34 +57,50 @@ func (b *BurstBuffer) Add(msg *MessageInfo, arrivalTime time.Time) bool {
 		return false
 	}
 	b.seenIDs[msg.Name] = true
-	b.messages = append(b.messages, msg)
-	b.lastMessageTime = arrivalTime
+
+	targetSpace := spaceID
+	if targetSpace == "" || targetSpace == "all" {
+		targetSpace = ExtractSpaceID(msg.Name)
+	}
+
+	sb, exists := b.buffers[targetSpace]
+	if !exists {
+		sb = &spaceBuffer{messages: make([]*MessageInfo, 0)}
+		b.buffers[targetSpace] = sb
+	}
+	sb.messages = append(sb.messages, msg)
+	sb.lastMessageTime = arrivalTime
 	return true
 }
 
-// ShouldFlush returns true if the buffer has messages and debounce has expired.
-func (b *BurstBuffer) ShouldFlush(now time.Time) bool {
+// FlushedBursts checks all space buffers and returns bursts whose debounce window has elapsed.
+func (b *BurstBuffer) FlushedBursts(now time.Time) []FlushedBurst {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if len(b.messages) == 0 {
-		return false
+	var flushed []FlushedBurst
+
+	for spaceID, sb := range b.buffers {
+		if len(sb.messages) == 0 {
+			continue
+		}
+		if b.debounceDuration <= 0 || !now.Before(sb.lastMessageTime.Add(b.debounceDuration)) {
+			flushed = append(flushed, FlushedBurst{
+				SpaceID:  spaceID,
+				Messages: sb.messages,
+			})
+			delete(b.buffers, spaceID)
+		}
 	}
-	if b.debounceDuration <= 0 {
-		return true
-	}
-	return !now.Before(b.lastMessageTime.Add(b.debounceDuration))
+	return flushed
 }
 
-// Flush returns all accumulated messages and resets the burst buffer.
-func (b *BurstBuffer) Flush() []*MessageInfo {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if len(b.messages) == 0 {
-		return nil
+// ExtractSpaceID parses the parent space name from a full message resource path.
+func ExtractSpaceID(messageResourceName string) string {
+	parts := strings.Split(messageResourceName, "/")
+	if len(parts) >= 2 {
+		return parts[0] + "/" + parts[1]
 	}
-	flushed := b.messages
-	b.messages = make([]*MessageInfo, 0)
-	return flushed
+	return messageResourceName
 }
 
 // FormatBurstText formats a burst of messages into a synthesized conversational text.
