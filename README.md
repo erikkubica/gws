@@ -13,6 +13,7 @@
 - **📋 Google Tasks:** Full lifecycle for task lists (`lists`, `create-list`, `delete-list`), todos with notes and due dates, hierarchical subtasks (`--parent`), attachment links (`--link`), and completion marking (`done`).
 - **📊 Google Sheets:** Create spreadsheets (`create`), add sheet tabs (`add-sheet`), read cell ranges (`read`), append rows (`append`), and update cells (`update`).
 - **📄 Google Docs:** Create documents (`create`), read document text (`read`), and append text (`append`).
+- **💬 Google Chat:** List spaces and direct messages (`spaces`), send messages (`send`), read chat history (`list`), and post via incoming webhooks (`webhook`).
 - **▶️ YouTube:** Search videos, fetch view counts, likes, and metadata.
 - **⚡ UNIX Composability:** All listing/querying commands support the `--json` flag to pipe directly into `jq`.
 - **🚀 Single Static Binary:** Fast startup (~3ms), zero runtime dependencies, cross-platform Go architecture.
@@ -222,6 +223,21 @@ gws sheets read <spreadsheet_id> "Expenses!A1:D10" --json
 gws docs create "Meeting Notes"
 gws docs read <doc_id>
 gws docs append <doc_id> "Key decisions made during sprint kickoff.\n"
+```
+
+### Google Chat
+```bash
+# List joined spaces and direct messages
+gws chat spaces --json
+
+# Send message to a space or direct message
+gws chat send "spaces/AAAA..." "Hello team! Build v1.0.0 completed."
+
+# Read recent messages from a space
+gws chat list "spaces/AAAA..." --max 10
+
+# Post directly via Google Chat incoming webhook
+gws chat webhook "https://chat.googleapis.com/v1/spaces/.../messages?key=..." "Alert: Deployment finished."
 ```
 
 ### Google Drive

@@ -10,6 +10,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/chat/v1"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/youtube/v3"
@@ -23,6 +24,9 @@ var Scopes = []string{
 	"https://www.googleapis.com/auth/tasks",
 	"https://www.googleapis.com/auth/spreadsheets",
 	"https://www.googleapis.com/auth/userinfo.email",
+	chat.ChatSpacesScope,
+	chat.ChatMessagesScope,
+	chat.ChatMembershipsReadonlyScope,
 }
 
 // SelectedAccount stores an account override set via CLI flags or programmatic calls.

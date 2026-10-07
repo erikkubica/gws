@@ -1,12 +1,12 @@
 ---
 name: gws
-description: All-in-one Google Workspace tool (Gmail, Calendar, Meet, Drive, Tasks, Sheets, Docs, YouTube). Use whenever the user asks to read, search, send, or manage emails, schedule calendar events, create Google Meet links, accept/decline invites, access Drive files, create/edit Google Sheets, read Docs, manage todos/tasks, or search YouTube.
+description: All-in-one Google Workspace tool (Gmail, Calendar, Meet, Drive, Tasks, Sheets, Docs, Chat, YouTube). Use whenever the user asks to read, search, send, or manage emails, schedule calendar events, create Google Meet links, accept/decline invites, access Drive files, create/edit Google Sheets, read Docs, send or read Google Chat messages, manage todos/tasks, or search YouTube.
 ---
 
 # `gws` — Google Workspace Powerhouse
 
 `gws` is an all-in-one CLI and MCP tool with persistent OAuth installed at `~/.local/bin/gws` (or in your `$PATH`).
-It provides instant terminal access to Gmail, Calendar, Meet, Drive, Tasks, Sheets, Docs, and YouTube without needing any external tools (replaces `gmcli`, `gccli`, `gdcli`).
+It provides instant terminal access to Gmail, Calendar, Meet, Drive, Tasks, Sheets, Docs, Chat, and YouTube without needing any external tools (replaces `gmcli`, `gccli`, `gdcli`).
 
 Authentication is configured in `~/.config/gws/token.json`.
 
@@ -64,6 +64,12 @@ Authentication is configured in `~/.config/gws/token.json`.
 - Create document: `gws docs create "<title>"`
 - Read document: `gws docs read <doc_id> [--json]`
 - Append text: `gws docs append <doc_id> "<text>"`
+
+### 💬 Google Chat (`gws chat`)
+- List spaces & DMs: `gws chat spaces [--max 20] [--json]`
+- Send message: `gws chat send <space_id> "<message>"`
+- List recent messages: `gws chat list <space_id> [--max 20] [--json]`
+- Send to webhook URL: `gws chat webhook <webhook_url> "<message>"`
 
 ### ▶️ YouTube (`gws yt`)
 - Search videos: `gws yt search "<query>" [--max 10] [--json]`

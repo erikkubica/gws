@@ -45,6 +45,7 @@ func init() {
 	rootCmd.AddCommand(sheetsCmd)
 	rootCmd.AddCommand(docsCmd)
 	rootCmd.AddCommand(meetCmd)
+	rootCmd.AddCommand(chatCmd)
 }
 
 func printError(err error) {
