@@ -6,9 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is the build version of gws (injected via ldflags at build time).
+var Version = "1.0.0-dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "gws",
-	Short: "Unified Google Workspace CLI & Model Context Protocol (MCP) Server",
+	Use:     "gws",
+	Short:   "Unified Google Workspace CLI & Model Context Protocol (MCP) Server",
+	Version: Version,
 	Long: `gws is an all-in-one developer tool and MCP server for Google Workspace.
 It provides instant terminal access and AI agent integration for Gmail, Calendar, Drive, and YouTube.`,
 }
