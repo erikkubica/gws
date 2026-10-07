@@ -13,7 +13,7 @@
 - **📋 Google Tasks:** Full lifecycle for task lists (`lists`, `create-list`, `delete-list`), todos with notes and due dates, hierarchical subtasks (`--parent`), attachment links (`--link`), and completion marking (`done`).
 - **📊 Google Sheets:** Create spreadsheets (`create`), add sheet tabs (`add-sheet`), read cell ranges (`read`), append rows (`append`), and update cells (`update`).
 - **📄 Google Docs:** Create documents (`create`), read document text (`read`), and append text (`append`).
-- **💬 Google Chat:** List spaces and direct messages (`spaces`), send messages (`send`), read chat history (`list`), and post via incoming webhooks (`webhook`).
+- **💬 Google Chat:** List spaces and direct messages (`spaces`), send messages (`send`), read chat history (`messages`), react with emojis (`react`), inspect reactions (`reactions`), and handle file attachments.
 - **▶️ YouTube:** Search videos, fetch view counts, likes, and metadata.
 - **⚡ UNIX Composability:** All listing/querying commands support the `--json` flag to pipe directly into `jq`.
 - **🚀 Single Static Binary:** Fast startup (~3ms), zero runtime dependencies, cross-platform Go architecture.
@@ -253,9 +253,6 @@ gws chat reply "spaces/AAAA..." <message_id> "Acknowledged, on it!"
 # React with an emoji to a message
 gws chat react <message_name_or_id> "👍"
 gws chat reactions <message_name_or_id>
-
-# Post directly via Google Chat incoming webhook
-gws chat webhook "https://chat.googleapis.com/v1/spaces/.../messages?key=..." "Alert: Deployment finished."
 ```
 
 ### Google Drive

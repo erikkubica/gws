@@ -17,6 +17,7 @@ Authentication is configured in `~/.config/gws/token.json`.
 - Read message: `gws mail read <message_id> [--json]`
 - Send email: `gws mail send --to <email> --subject "<subj>" --body "<body>" [--attach <path>] [--meet]`
 - Reply to thread: `gws mail reply <message_id> --body "<body>" [--attach <path>] [--meet]`
+- Download attachment: `gws mail download <message_id> [attachment_id_or_filename] [--dir <dir>] [--out <file>]` (aliases: `att`, `attachment`)
 - Schedule send: `gws mail send ... --delay 10m` or `--at "2026-10-06T09:00:00+07:00"`
 - Manage drafts: `gws mail draft ...`, `gws mail drafts`, `gws mail send-draft <draft_id>`, `gws mail delete-draft <draft_id>`
 
@@ -72,7 +73,6 @@ Authentication is configured in `~/.config/gws/token.json`.
 - Reply in thread: `gws chat reply <space_id> <message_id> "<message>" [--attach <path>]`
 - Add emoji reaction: `gws chat react <message_name_or_id> "<emoji>"`
 - List reactions: `gws chat reactions <message_name_or_id>`
-- Send to webhook URL: `gws chat webhook <webhook_url> "<message>"`
 
 ### ▶️ YouTube (`gws yt`)
 - Search videos: `gws yt search "<query>" [--max 10] [--json]`

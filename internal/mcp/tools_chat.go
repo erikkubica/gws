@@ -17,7 +17,6 @@ func registerChatTools(s *server.MCPServer) {
 	s.AddTool(buildChatListMessagesTool(), handleChatListMessages())
 	s.AddTool(buildChatReactTool(), handleChatReact())
 	s.AddTool(buildChatListReactionsTool(), handleChatListReactions())
-	s.AddTool(buildChatSendWebhookTool(), handleChatSendWebhook())
 }
 
 func buildChatListSpacesTool() mcp.Tool {
@@ -63,14 +62,6 @@ func buildChatListMessagesTool() mcp.Tool {
 		mcp.WithNumber("max", mcp.Description("Max messages to return (default 20)")),
 		mcp.WithString("order", mcp.Description("Order by create time: 'DESC' (newest first, default) or 'ASC' (oldest first)")),
 		accountOption(),
-	)
-}
-
-func buildChatSendWebhookTool() mcp.Tool {
-	return mcp.NewTool("chat_send_webhook",
-		mcp.WithDescription("Post a message to a Google Chat incoming webhook URL"),
-		mcp.WithString("webhook_url", mcp.Required(), mcp.Description("Incoming webhook URL")),
-		mcp.WithString("text", mcp.Required(), mcp.Description("Message plain text")),
 	)
 }
 
@@ -158,20 +149,5 @@ func handleChatListMessages() server.ToolHandlerFunc {
 		}
 		b, _ := json.MarshalIndent(msgs, "", "  ")
 		return mcp.NewToolResultText(string(b)), nil
-	}
-}
-
-func handleChatSendWebhook() server.ToolHandlerFunc {
-	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := chat.NewService(c)
-		if err != nil {
-			return mcp.NewToolResultError("chat service error: " + err.Error()), nil
-		}
-		url, _ := req.RequireString("webhook_url")
-		text, _ := req.RequireString("text")
-		if err := svc.SendWebhook(url, text); err != nil {
-			return mcp.NewToolResultError("webhook error: " + err.Error()), nil
-		}
-		return mcp.NewToolResultText("Webhook message delivered successfully!"), nil
 	}
 }

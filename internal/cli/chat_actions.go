@@ -109,23 +109,6 @@ var chatReactionsCmd = &cobra.Command{
 	},
 }
 
-var chatWebhookCmd = &cobra.Command{
-	Use:   "webhook [webhook_url] [message_text]",
-	Short: "Post a message to an incoming Google Chat webhook URL",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		if err := svc.SendWebhook(args[0], args[1]); err != nil {
-			return err
-		}
-		fmt.Println("Webhook message delivered successfully!")
-		return nil
-	},
-}
-
 func init() {
 	chatSendCmd.Flags().StringVar(&chatReplyTo, "reply-to", "", "Message ID to reply to (starts or continues thread)")
 	chatSendCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
@@ -136,5 +119,4 @@ func init() {
 	chatCmd.AddCommand(chatReplyCmd)
 	chatCmd.AddCommand(chatReactCmd)
 	chatCmd.AddCommand(chatReactionsCmd)
-	chatCmd.AddCommand(chatWebhookCmd)
 }

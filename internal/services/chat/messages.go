@@ -1,10 +1,7 @@
 package chat
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -193,36 +190,4 @@ func (s *Service) ListMessagesWithOrder(spaceName string, pageSize int64, order 
 		msgs = append(msgs, formatMessageInfo(m))
 	}
 	return msgs, nil
-}
-
-// SendWebhook posts a message to an incoming Google Chat webhook URL.
-func (s *Service) SendWebhook(webhookURL, text string) error {
-	if strings.TrimSpace(webhookURL) == "" {
-		return fmt.Errorf("webhook URL cannot be empty")
-	}
-	if strings.TrimSpace(text) == "" {
-		return fmt.Errorf("message text cannot be empty")
-	}
-
-	payload, err := json.Marshal(map[string]string{"text": text})
-	if err != nil {
-		return fmt.Errorf("encode webhook payload: %w", err)
-	}
-
-	req, err := http.NewRequest(http.MethodPost, webhookURL, bytes.NewBuffer(payload))
-	if err != nil {
-		return fmt.Errorf("create webhook request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("send webhook: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("webhook returned non-success HTTP status %d", resp.StatusCode)
-	}
-	return nil
 }

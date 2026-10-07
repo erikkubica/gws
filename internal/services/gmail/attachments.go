@@ -77,13 +77,10 @@ func (s *Service) GetAttachmentContent(messageID, attachmentID string) ([]byte, 
 
 // findAttachmentPart locates the MessagePart matching attachment ID or filename.
 func findAttachmentPart(p *gmail.MessagePart, idOrName string) *gmail.MessagePart {
-	if p == nil {
+	if p == nil || idOrName == "" {
 		return nil
 	}
 	if p.Filename != "" {
-		if idOrName == "" {
-			return p
-		}
 		isID := p.Body != nil && p.Body.AttachmentId != "" && p.Body.AttachmentId == idOrName
 		isName := strings.EqualFold(p.Filename, idOrName) || strings.EqualFold(filepath.Base(p.Filename), idOrName)
 		if isID || isName {
@@ -134,6 +131,12 @@ func (s *Service) FetchAttachment(messageID, idOrName string) (*AttachmentFile, 
 		return nil, fmt.Errorf("get message %s: %w", messageID, err)
 	}
 	part := findAttachmentPart(msg.Payload, idOrName)
+	if part == nil && idOrName == "" {
+		atts := extractAttachments(msg.Payload)
+		if len(atts) == 1 {
+			part = findAttachmentPart(msg.Payload, atts[0].Filename)
+		}
+	}
 	if part == nil {
 		if idOrName != "" {
 			return s.resolveDirectAttachment(messageID, idOrName)
