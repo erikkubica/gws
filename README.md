@@ -100,6 +100,14 @@ gcloud services enable \
    * Name: `gws Desktop Client`.
    * Click **Create** and download the credentials JSON file (or copy the Client ID & Secret).
 
+3. **Google Chat API Configuration (Required for `gws chat`)**:
+   * Even when posting as a user, Google Chat requires an app profile for the client attribution pill:
+   * Open [Google Cloud Console > Google Chat API > Configuration](https://console.cloud.google.com/apis/api/chat.googleapis.com/hangouts-chat).
+   * Enter **App name** (e.g. `gws`), an **Avatar URL** (e.g. `https://developers.google.com/workspace/chat/images/quickstart-app-avatar.png`), and **Description** (`Google Workspace CLI`).
+   * Leave **Interactive features** toggled OFF.
+   * Under **Visibility**, choose *"Make this Chat app available to everyone in your domain"* (or add your email).
+   * Click **Save**.
+
 ### 3. Configure GCP OAuth Application (`gws gcp`)
 
 Import the OAuth Client ID JSON downloaded from Google Cloud Console:
