@@ -31,15 +31,34 @@ var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Check current authentication status",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		tok, err := auth.LoadToken()
-		if err != nil {
-			fmt.Println("Not authenticated. Run 'gws auth login' to authenticate.")
-			return nil
-		}
-		fmt.Println("Authenticated.")
-		fmt.Printf("Token Expiry: %v (Valid: %v)\n", tok.Expiry, tok.Valid())
+		printGCPAuthStatus()
+		printUserAuthStatus()
 		return nil
 	},
+}
+
+func printGCPAuthStatus() {
+	creds, err := auth.LoadGCPCredentials()
+	if err != nil {
+		fmt.Println("GCP Application: Not configured (run 'gws gcp import <file>' or 'gws gcp set <id> <secret>')")
+		return
+	}
+	fmt.Printf("GCP Application: Configured (Client ID: %s)\n", auth.MaskClientID(creds.ClientID))
+}
+
+func printUserAuthStatus() {
+	tok, err := auth.LoadToken()
+	if err != nil {
+		fmt.Println("User Account:    Not authenticated (run 'gws auth login')")
+		return
+	}
+	if !tok.Valid() {
+		fmt.Println("User Account:    Authenticated (access token expired, auto-refreshes on next command)")
+		fmt.Printf("Token Expiry:    %v\n", tok.Expiry)
+		return
+	}
+	fmt.Println("User Account:    Authenticated (Active)")
+	fmt.Printf("Token Expiry:    %v\n", tok.Expiry)
 }
 
 var logoutCmd = &cobra.Command{

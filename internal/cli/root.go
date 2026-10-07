@@ -10,9 +10,10 @@ import (
 var Version = "1.0.0-dev"
 
 var rootCmd = &cobra.Command{
-	Use:     "gws",
-	Short:   "Unified Google Workspace CLI & Model Context Protocol (MCP) Server",
-	Version: Version,
+	Use:          "gws",
+	Short:        "Unified Google Workspace CLI & Model Context Protocol (MCP) Server",
+	Version:      Version,
+	SilenceUsage: true,
 	Long: `gws is an all-in-one developer tool and MCP server for Google Workspace.
 It provides instant terminal access and AI agent integration for Gmail, Calendar, Drive, and YouTube.`,
 }

@@ -174,7 +174,7 @@ check_auth_status() {
   else
     log_warn "No Google OAuth credentials found."
     echo "       1. Create OAuth 2.0 Client ID in Google Cloud Console"
-    echo "       2. Save credentials JSON to: ~/.config/gws/credentials.json"
+    echo "       2. Configure credentials with: gws gcp import <file> (or gws gcp set <id> <secret>)"
     echo "       3. Run: gws auth login"
   fi
 }

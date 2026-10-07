@@ -32,6 +32,9 @@ func LoadOAuthConfig(redirectURL string) (*oauth2.Config, error) {
 	}
 	b, err := os.ReadFile(credFile)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("GCP OAuth credentials not found: run 'gws gcp import <file>' or 'gws gcp set <client_id> <client_secret>' first")
+		}
 		return nil, fmt.Errorf("read credentials file (%s): %w", credFile, err)
 	}
 	cfg, err := google.ConfigFromJSON(b, Scopes...)
@@ -66,6 +69,9 @@ func LoadToken() (*oauth2.Token, error) {
 	}
 	f, err := os.Open(tokPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("not authenticated: run 'gws auth login'")
+		}
 		return nil, fmt.Errorf("open token file: %w", err)
 	}
 	defer f.Close()
@@ -84,7 +90,7 @@ func GetClient(ctx context.Context) (*http.Client, error) {
 	}
 	tok, err := LoadToken()
 	if err != nil {
-		return nil, fmt.Errorf("no active session found: please run 'gws auth login' first: %w", err)
+		return nil, fmt.Errorf("not authenticated: run 'gws auth login'")
 	}
 	return cfg.Client(ctx, tok), nil
 }
