@@ -2,6 +2,8 @@ package tasks
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"google.golang.org/api/tasks/v1"
 )
@@ -88,7 +90,7 @@ func (s *Service) CreateTask(listID, parentID, title, notes, due string) (*tasks
 	if listID == "" {
 		listID = "@default"
 	}
-	task := &tasks.Task{Title: title, Notes: notes, Due: due}
+	task := &tasks.Task{Title: title, Notes: notes, Due: NormalizeDueDate(due)}
 	call := s.client.Tasks.Insert(listID, task)
 	if parentID != "" {
 		call = call.Parent(parentID)
@@ -98,6 +100,21 @@ func (s *Service) CreateTask(listID, parentID, title, notes, due string) (*tasks
 		return nil, fmt.Errorf("create task: %w", err)
 	}
 	return res, nil
+}
+
+// NormalizeDueDate converts YYYY-MM-DD dates to RFC3339 timestamps for Google Tasks API.
+func NormalizeDueDate(due string) string {
+	clean := strings.TrimSpace(due)
+	if clean == "" {
+		return ""
+	}
+	if t, err := time.Parse(time.RFC3339, clean); err == nil {
+		return t.Format(time.RFC3339)
+	}
+	if t, err := time.Parse("2006-01-02", clean); err == nil {
+		return t.UTC().Format(time.RFC3339)
+	}
+	return clean
 }
 
 // CompleteTask marks a task as completed.
