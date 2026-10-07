@@ -237,3 +237,28 @@ func spaceMatchesQuery(sp *SpaceInfo, query string) bool {
 	}
 	return false
 }
+
+// SpaceActivity represents minimal activity timestamp for a space.
+type SpaceActivity struct {
+	Name           string `json:"name"`
+	LastActiveTime string `json:"last_active_time,omitempty"`
+}
+
+// ListSpaceActivities returns spaces with their last active timestamps without member resolution.
+func (s *Service) ListSpaceActivities(pageSize int64) ([]SpaceActivity, error) {
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	res, err := s.client.Spaces.List().PageSize(pageSize).Do()
+	if err != nil {
+		return nil, fmt.Errorf("list spaces: %w", err)
+	}
+	var list []SpaceActivity
+	for _, sp := range res.Spaces {
+		list = append(list, SpaceActivity{
+			Name:           sp.Name,
+			LastActiveTime: sp.LastActiveTime,
+		})
+	}
+	return list, nil
+}

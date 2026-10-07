@@ -10,9 +10,11 @@ import (
 	"os/signal"
 	"runtime"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/erikkubica/gws/internal/auth"
 	"github.com/erikkubica/gws/internal/services/chat"
 	"github.com/spf13/cobra"
 )
@@ -26,9 +28,9 @@ var (
 )
 
 var chatWatchCmd = &cobra.Command{
-	Use:   "watch [space_id]",
-	Short: "Continuously monitor a Google Chat space for new messages with debouncing",
-	Args:  cobra.ExactArgs(1),
+	Use:   "watch [space_id|all]",
+	Short: "Continuously monitor Google Chat space(s) for new messages with debouncing",
+	Args:  cobra.MaximumNArgs(1),
 	RunE:  runChatWatch,
 }
 
@@ -40,14 +42,32 @@ func runChatWatch(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	space := chat.NormalizeSpaceName(args[0])
+	target := "all"
+	if len(args) > 0 && args[0] != "" && args[0] != "all" {
+		target = chat.NormalizeSpaceName(args[0])
+	}
 	buffer := chat.NewBurstBuffer(watchDebounce)
+	if target == "all" {
+		return runWatchAll(ctx, svc, buffer)
+	}
+	return runWatchSingle(ctx, svc, target, buffer)
+}
 
+func runWatchSingle(ctx context.Context, svc *chat.Service, space string, buffer *chat.BurstBuffer) error {
 	if err := seedInitialMessages(svc, space, buffer); err != nil {
 		return err
 	}
 	fmt.Printf("Watching %s (interval: %s, debounce: %s)...\n", space, watchInterval, watchDebounce)
 	return watchLoop(ctx, svc, space, buffer)
+}
+
+func runWatchAll(ctx context.Context, svc *chat.Service, buffer *chat.BurstBuffer) error {
+	activities := make(map[string]string)
+	if err := seedAllSpaces(svc, buffer, activities); err != nil {
+		return err
+	}
+	fmt.Printf("Watching ALL conversations (interval: %s, debounce: %s)...\n", watchInterval, watchDebounce)
+	return watchAllLoop(ctx, svc, buffer, activities)
 }
 
 func seedInitialMessages(svc *chat.Service, space string, buffer *chat.BurstBuffer) error {
@@ -59,12 +79,23 @@ func seedInitialMessages(svc *chat.Service, space string, buffer *chat.BurstBuff
 	return nil
 }
 
-func watchLoop(ctx context.Context, svc *chat.Service, space string, buffer *chat.BurstBuffer) error {
-	pollInterval := watchInterval
-	if pollInterval <= 0 {
-		pollInterval = 10 * time.Second
+func seedAllSpaces(svc *chat.Service, buffer *chat.BurstBuffer, activities map[string]string) error {
+	spaces, err := svc.ListSpaceActivities(50)
+	if err != nil {
+		return fmt.Errorf("seed all spaces: %w", err)
 	}
-	ticker := time.NewTicker(pollInterval)
+	for _, sp := range spaces {
+		activities[sp.Name] = sp.LastActiveTime
+	}
+	for i := 0; i < len(spaces) && i < 10; i++ {
+		msgs, _ := svc.ListMessagesWithOrder(spaces[i].Name, 5, "DESC")
+		buffer.SeedIDs(msgs)
+	}
+	return nil
+}
+
+func watchLoop(ctx context.Context, svc *chat.Service, space string, buffer *chat.BurstBuffer) error {
+	ticker := time.NewTicker(resolvePollInterval())
 	defer ticker.Stop()
 
 	for {
@@ -78,6 +109,28 @@ func watchLoop(ctx context.Context, svc *chat.Service, space string, buffer *cha
 	}
 }
 
+func watchAllLoop(ctx context.Context, svc *chat.Service, buf *chat.BurstBuffer, act map[string]string) error {
+	ticker := time.NewTicker(resolvePollInterval())
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("\nStopping watcher...")
+			return nil
+		case <-ticker.C:
+			pollAndFlushAll(svc, buf, act)
+		}
+	}
+}
+
+func resolvePollInterval() time.Duration {
+	if watchInterval <= 0 {
+		return 10 * time.Second
+	}
+	return watchInterval
+}
+
 func pollAndFlush(svc *chat.Service, space string, buffer *chat.BurstBuffer) {
 	recent, err := svc.ListMessagesWithOrder(space, 10, "DESC")
 	if err == nil {
@@ -88,6 +141,26 @@ func pollAndFlush(svc *chat.Service, space string, buffer *chat.BurstBuffer) {
 	if buffer.ShouldFlush(time.Now()) {
 		if flushed := buffer.Flush(); len(flushed) > 0 {
 			dispatchBurst(space, flushed)
+		}
+	}
+}
+
+func pollAndFlushAll(svc *chat.Service, buffer *chat.BurstBuffer, activities map[string]string) {
+	current, err := svc.ListSpaceActivities(50)
+	if err == nil {
+		for _, sp := range current {
+			if prevTime, exists := activities[sp.Name]; !exists || sp.LastActiveTime != prevTime {
+				activities[sp.Name] = sp.LastActiveTime
+				msgs, _ := svc.ListMessagesWithOrder(sp.Name, 5, "DESC")
+				for i := len(msgs) - 1; i >= 0; i-- {
+					buffer.Add(msgs[i], time.Now())
+				}
+			}
+		}
+	}
+	if buffer.ShouldFlush(time.Now()) {
+		if flushed := buffer.Flush(); len(flushed) > 0 {
+			dispatchBurst("all", flushed)
 		}
 	}
 }
@@ -115,7 +188,11 @@ func sendNotificationIfNeeded(space string, msgs []*chat.MessageInfo) {
 		return
 	}
 	latest := msgs[len(msgs)-1]
-	title := fmt.Sprintf("Google Chat (%s)", space)
+	displaySpace := space
+	if space == "all" {
+		displaySpace = extractSpaceID(latest.Name)
+	}
+	title := fmt.Sprintf("Google Chat (%s)", displaySpace)
 	body := fmt.Sprintf("%s: %s", latest.SenderName, latest.Text)
 	if len(msgs) > 1 {
 		body = fmt.Sprintf("[%d messages] Latest from %s: %s", len(msgs), latest.SenderName, latest.Text)
@@ -147,8 +224,17 @@ func executeCommandIfNeeded(space string, msgs []*chat.MessageInfo, payload []by
 
 func buildWatchEnv(space string, msgs []*chat.MessageInfo, payload []byte) []string {
 	latest := msgs[len(msgs)-1]
+	currentAcc, _ := auth.GetActiveAccount()
+	if auth.SelectedAccount != "" {
+		currentAcc = auth.SelectedAccount
+	}
+	spaceID := space
+	if spaceID == "all" && latest != nil {
+		spaceID = extractSpaceID(latest.Name)
+	}
 	return []string{
-		"GWS_SPACE_ID=" + space,
+		"GWS_ACCOUNT=" + currentAcc,
+		"GWS_SPACE_ID=" + spaceID,
 		"GWS_MESSAGE_COUNT=" + strconv.Itoa(len(msgs)),
 		"GWS_MESSAGE_ID=" + latest.Name,
 		"GWS_SENDER=" + latest.SenderName,
@@ -157,6 +243,14 @@ func buildWatchEnv(space string, msgs []*chat.MessageInfo, payload []byte) []str
 		"GWS_TEXT=" + chat.FormatBurstText(msgs),
 		"GWS_PAYLOAD=" + string(payload),
 	}
+}
+
+func extractSpaceID(messageResourceName string) string {
+	parts := strings.Split(messageResourceName, "/")
+	if len(parts) >= 2 {
+		return parts[0] + "/" + parts[1]
+	}
+	return messageResourceName
 }
 
 func init() {

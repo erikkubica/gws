@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/erikkubica/gws/internal/auth"
 	"github.com/spf13/cobra"
@@ -31,6 +32,8 @@ func init() {
 	cobra.OnInitialize(func() {
 		if accountFlag != "" {
 			auth.SelectedAccount = accountFlag
+		} else if envAcc := os.Getenv("GWS_ACCOUNT"); envAcc != "" {
+			auth.SelectedAccount = envAcc
 		}
 	})
 	rootCmd.AddCommand(authCmd)
