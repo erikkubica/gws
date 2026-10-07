@@ -73,11 +73,44 @@ Verify your GCP application configuration:
 gws gcp status
 ```
 
-### 2. User Authentication (`gws auth`)
+### 2. User Authentication & Multi-Account Support (`gws auth`)
 
-Run the interactive browser login:
+Authenticate your Google account via browser:
 ```bash
 gws auth login
+# Successfully authenticated as work@example.com!
+# Active account set to: work@example.com
+```
+
+Authenticate multiple accounts (e.g. work and personal):
+```bash
+gws auth login
+# Log in with your second account (e.g. user@example.com)
+```
+
+List all authenticated accounts:
+```bash
+gws auth list
+# Authenticated Accounts:
+# * user@example.com (valid)
+#   work@example.com (valid)
+```
+
+Switch the default active account:
+```bash
+gws auth switch work@example.com
+```
+
+Override account on any command using `-a` / `--account`:
+```bash
+gws mail list -a user@example.com
+gws cal list --account work@example.com
+```
+
+Log out of a specific account (or all):
+```bash
+gws auth logout user@example.com
+gws auth logout --all
 ```
 
 Check authentication status anytime:

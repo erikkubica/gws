@@ -3,11 +3,14 @@ package cli
 import (
 	"fmt"
 
+	"github.com/erikkubica/gws/internal/auth"
 	"github.com/spf13/cobra"
 )
 
 // Version is the build version of gws (injected via ldflags at build time).
 var Version = "1.0.0-dev"
+
+var accountFlag string
 
 var rootCmd = &cobra.Command{
 	Use:          "gws",
@@ -24,6 +27,12 @@ func Execute() error {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVarP(&accountFlag, "account", "a", "", "Google account email to use for this command")
+	cobra.OnInitialize(func() {
+		if accountFlag != "" {
+			auth.SelectedAccount = accountFlag
+		}
+	})
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(gcpCmd)
 	rootCmd.AddCommand(mcpCmd)

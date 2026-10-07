@@ -69,12 +69,16 @@ Authentication is configured in `~/.config/gws/token.json`.
 - Search videos: `gws yt search "<query>" [--max 10] [--json]`
 - Video statistics: `gws yt stats <video_id> [--json]`
 
-### ⚙️ GCP Setup & Auth (`gws gcp`, `gws auth`)
+### ⚙️ GCP Setup & Multi-Account Auth (`gws gcp`, `gws auth`)
 - Import GCP credentials JSON: `gws gcp import <path/to/credentials.json>`
 - Set GCP credentials directly: `gws gcp set <client_id> <client_secret>`
 - View GCP OAuth app status: `gws gcp status`
 - Interactive browser login: `gws auth login`
-- View user auth status: `gws auth status`
+- List all authenticated accounts: `gws auth list`
+- Switch active account: `gws auth switch <email>`
+- Override account on any command: `gws --account <email> ...` (or `-a <email>`)
+- Log out account: `gws auth logout [email] [--all]`
+- View auth status: `gws auth status`
 
 ### 🤖 MCP Server & Remote Auth (`gws mcp`)
 - Run local stdio server: `gws mcp server` (or `gws serve`)

@@ -37,10 +37,10 @@ func writeAuthResponse(w http.ResponseWriter, title, message string) {
 }
 
 // LoginFlow starts a local webserver and conducts the browser OAuth flow.
-func LoginFlow(ctx context.Context) error {
+func LoginFlow(ctx context.Context) (string, error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return fmt.Errorf("bind loopback listener: %w", err)
+		return "", fmt.Errorf("bind loopback listener: %w", err)
 	}
 	defer listener.Close()
 
@@ -49,7 +49,7 @@ func LoginFlow(ctx context.Context) error {
 
 	cfg, err := LoadOAuthConfig(redirectURL)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	authURL := cfg.AuthCodeURL("state-gws", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
@@ -60,10 +60,23 @@ func LoginFlow(ctx context.Context) error {
 }
 
 // handleCallback awaits the HTTP authorization response and exchanges code for token.
-func handleCallback(ctx context.Context, l net.Listener, cfg *oauth2.Config) error {
+func handleCallback(ctx context.Context, l net.Listener, cfg *oauth2.Config) (string, error) {
 	codeCh := make(chan string, 1)
 	errCh := make(chan error, 1)
+	server := startCallbackServer(l, codeCh, errCh)
 
+	select {
+	case code := <-codeCh:
+		defer shutdownServer(server)
+		return exchangeAndSaveToken(ctx, cfg, code)
+	case err := <-errCh:
+		return "", err
+	case <-time.After(3 * time.Minute):
+		return "", fmt.Errorf("authentication timed out waiting for browser callback")
+	}
+}
+
+func startCallbackServer(l net.Listener, codeCh chan string, errCh chan error) *http.Server {
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if code := r.URL.Query().Get("code"); code != "" {
@@ -76,30 +89,32 @@ func handleCallback(ctx context.Context, l net.Listener, cfg *oauth2.Config) err
 			errCh <- fmt.Errorf("oauth failed: %s", errStr)
 		}),
 	}
-
 	go func() {
 		if err := server.Serve(l); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
+	return server
+}
 
-	select {
-	case code := <-codeCh:
-		tok, err := cfg.Exchange(ctx, code)
-		if err != nil {
-			return fmt.Errorf("exchange auth code: %w", err)
-		}
-		if err := SaveToken(tok); err != nil {
-			return fmt.Errorf("save token: %w", err)
-		}
-		go func() {
-			time.Sleep(100 * time.Millisecond)
-			_ = server.Close()
-		}()
-		return nil
-	case err := <-errCh:
-		return err
-	case <-time.After(3 * time.Minute):
-		return fmt.Errorf("authentication timed out waiting for browser callback")
+func exchangeAndSaveToken(ctx context.Context, cfg *oauth2.Config, code string) (string, error) {
+	tok, err := cfg.Exchange(ctx, code)
+	if err != nil {
+		return "", fmt.Errorf("exchange auth code: %w", err)
 	}
+	email, err := FetchUserEmail(ctx, cfg.Client(ctx, tok))
+	if err != nil || email == "" {
+		email = "default"
+	}
+	if err := SaveAccountToken(email, tok); err != nil {
+		return "", fmt.Errorf("save account token: %w", err)
+	}
+	return email, nil
+}
+
+func shutdownServer(server *http.Server) {
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		_ = server.Close()
+	}()
 }

@@ -52,3 +52,25 @@ func TokenPath() (string, error) {
 	}
 	return p, nil
 }
+
+// AccountsDir returns the directory where per-account data and tokens are stored.
+func AccountsDir() (string, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	accDir := filepath.Join(dir, "accounts")
+	if err := os.MkdirAll(accDir, 0700); err != nil {
+		return "", fmt.Errorf("create accounts directory %s: %w", accDir, err)
+	}
+	return accDir, nil
+}
+
+// AppConfigPath returns the path to gws configuration file (config.json).
+func AppConfigPath() (string, error) {
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "config.json"), nil
+}
