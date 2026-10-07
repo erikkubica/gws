@@ -9,7 +9,7 @@ import (
 )
 
 // Version is the build version of gws (injected via ldflags at build time).
-var Version = "1.1.0"
+var Version = "1.1.1"
 
 var accountFlag string
 
