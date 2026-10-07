@@ -53,8 +53,9 @@ func waitSchedule(delay, at string) error {
 }
 
 var mailListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List or search messages",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List or search messages (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := gmail.NewService(context.Background())
 		if err != nil {

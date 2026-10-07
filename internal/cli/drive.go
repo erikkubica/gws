@@ -23,8 +23,9 @@ var (
 )
 
 var driveListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List or search files",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List or search files (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := drive.NewService(context.Background())
 		if err != nil {
@@ -119,8 +120,9 @@ var driveCreateCmd = &cobra.Command{
 }
 
 var driveDeleteCmd = &cobra.Command{
-	Use:   "delete [file_id]",
-	Short: "Permanently delete a file from Google Drive",
+	Use:     "delete [file_id]",
+	Aliases: []string{"rm"},
+	Short:   "Permanently delete a file from Google Drive (aliases: rm)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := drive.NewService(context.Background())

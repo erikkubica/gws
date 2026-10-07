@@ -13,7 +13,7 @@ Authentication is configured in `~/.config/gws/token.json`.
 ## Quick Reference
 
 ### 📬 Gmail (`gws mail`)
-- Search/list messages: `gws mail list --query "<query>" --max 10 [--json]`
+- Search/list messages: `gws mail list --query "<query>" --max 10 [--json]` (alias: `ls`)
 - Read message: `gws mail read <message_id> [--json]`
 - Send email: `gws mail send --to <email> --subject "<subj>" --body "<body>" [--attach <path>] [--meet]`
 - Reply to thread: `gws mail reply <message_id> --body "<body>" [--attach <path>] [--meet]`
@@ -25,33 +25,33 @@ Authentication is configured in `~/.config/gws/token.json`.
 - Send Meet invitation email: `gws meet send "<title>" --to <email> [--start <iso>] [--end <iso>]`
 
 ### 📅 Calendar (`gws cal`)
-- List upcoming events: `gws cal list [--max 10] [--json]`
-- Quick-add event (natural language): `gws cal add "Meeting tomorrow at 3pm"`
+- List upcoming events: `gws cal list [--max 10] [--json]` (alias: `ls`)
+- Quick-add event (natural language): `gws cal add "Meeting tomorrow at 3pm"` (alias: `quick-add`)
 - Structured event creation: `gws cal create --title "<title>" --start "<rfc3339>" --end "<rfc3339>" [--meet] [--attendees "a@b.com,c@d.com"]`
 - RSVP response:
   - Accept: `gws cal accept <event_id>`
   - Decline: `gws cal decline <event_id>`
   - Maybe / tentative: `gws cal maybe <event_id>`
   - Custom response: `gws cal respond <event_id> <accepted|declined|tentative>`
-- Delete event: `gws cal delete <event_id>`
+- Delete event: `gws cal delete <event_id>` (alias: `rm`)
 
 ### 📁 Google Drive (`gws drive`)
-- List & search files: `gws drive list [--query "<search>"] [--max 20] [--json]`
+- List & search files: `gws drive list [--query "<search>"] [--max 20] [--json]` (alias: `ls`)
 - Read / export file text: `gws drive read <file_id> [--json]`
 - Download file: `gws drive download <file_id> <local_destination_path>`
 - Upload file: `gws drive upload <local_file_path> [--name <name>]`
 - Create file: `gws drive create "<filename>" [--mime "<mimetype>"]`
-- Delete file: `gws drive delete <file_id>`
+- Delete file: `gws drive delete <file_id>` (alias: `rm`)
 
 ### 📋 Google Tasks (`gws tasks`)
 - List task lists: `gws tasks lists [--json]`
 - Create task list: `gws tasks create-list "<title>"`
-- Delete task list: `gws tasks delete-list <list_id>`
-- List tasks: `gws tasks list [--list <list_id>] [--max 20] [--json]`
+- Delete task list: `gws tasks delete-list <list_id>` (alias: `rm-list`)
+- List tasks: `gws tasks list [--list <list_id>] [--max 20] [--json]` (alias: `ls`)
 - Add task: `gws tasks add "<title>" [--notes "<notes>"] [--due "<rfc3339>"] [--link "<url>"] [--list <list_id>]`
 - Add subtask: `gws tasks add "<title>" --parent <parent_task_id> [--list <list_id>]`
 - Complete task: `gws tasks done <task_id> [--list <list_id>]`
-- Delete task: `gws tasks delete <task_id> [--list <list_id>]`
+- Delete task: `gws tasks delete <task_id> [--list <list_id>]` (alias: `rm`)
 
 ### 📊 Google Sheets (`gws sheets`)
 - Create spreadsheet: `gws sheets create "<title>"`
@@ -66,12 +66,12 @@ Authentication is configured in `~/.config/gws/token.json`.
 - Append text: `gws docs append <doc_id> "<text>"`
 
 ### 💬 Google Chat (`gws chat`)
-- List spaces & DMs: `gws chat spaces [--max 20] [--json]`
+- List spaces & DMs: `gws chat spaces [--max 20] [--json]` (aliases: `rooms`, `dms`, `list`)
+- List messages in space/DM: `gws chat messages <space_id> [--max 20] [--json]` (aliases: `msgs`, `list <space_id>`)
 - Send message: `gws chat send <space_id> "<message>" [--reply-to <msg_id>] [--attach <path>]`
 - Reply in thread: `gws chat reply <space_id> <message_id> "<message>" [--attach <path>]`
 - Add emoji reaction: `gws chat react <message_name_or_id> "<emoji>"`
 - List reactions: `gws chat reactions <message_name_or_id>`
-- List recent messages: `gws chat list <space_id> [--max 20] [--json]`
 - Send to webhook URL: `gws chat webhook <webhook_url> "<message>"`
 
 ### ▶️ YouTube (`gws yt`)
@@ -81,9 +81,9 @@ Authentication is configured in `~/.config/gws/token.json`.
 ### ⚙️ GCP Setup & Multi-Account Auth (`gws gcp`, `gws auth`)
 - Import GCP credentials JSON: `gws gcp import <path/to/credentials.json>`
 - Set GCP credentials directly: `gws gcp set <client_id> <client_secret>`
-- View GCP OAuth app status: `gws gcp status`
+- View GCP OAuth app status: `gws gcp status` (alias: `show`)
 - Interactive browser login: `gws auth login`
-- List all authenticated accounts: `gws auth list`
+- List all authenticated accounts: `gws auth list` (aliases: `accounts`, `ls`)
 - Switch active account: `gws auth switch <email>`
 - Override account on any command: `gws --account <email> ...` (or `-a <email>`)
 - Log out account: `gws auth logout [email] [--all]`

@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
 	Version:      Version,
 	SilenceUsage: true,
 	Long: `gws is an all-in-one developer tool and MCP server for Google Workspace.
-It provides instant terminal access and AI agent integration for Gmail, Calendar, Drive, and YouTube.`,
+It provides instant terminal access and AI agent integration for Gmail, Calendar, Meet, Drive, Tasks, Sheets, Docs, Chat, and YouTube.`,
 }
 
 // Execute is the main entrypoint for the CLI application.

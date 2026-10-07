@@ -227,8 +227,13 @@ gws docs append <doc_id> "Key decisions made during sprint kickoff.\n"
 
 ### Google Chat
 ```bash
-# List joined spaces and direct messages
+# List joined spaces and direct messages (aliases: rooms, dms, list)
+gws chat spaces
 gws chat spaces --json
+
+# List recent messages from a space (aliases: msgs, list <space_id>)
+gws chat messages "spaces/AAAA..." --max 10
+gws chat messages "spaces/AAAA..." --json
 
 # Send message (with optional file attachment)
 gws chat send "spaces/AAAA..." "Hello team! Spec document attached." --attach ./spec.pdf
@@ -239,9 +244,6 @@ gws chat reply "spaces/AAAA..." <message_id> "Acknowledged, on it!"
 # React with an emoji to a message
 gws chat react <message_name_or_id> "👍"
 gws chat reactions <message_name_or_id>
-
-# Read recent messages from a space
-gws chat list "spaces/AAAA..." --max 10
 
 # Post directly via Google Chat incoming webhook
 gws chat webhook "https://chat.googleapis.com/v1/spaces/.../messages?key=..." "Alert: Deployment finished."

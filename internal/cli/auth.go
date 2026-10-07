@@ -34,7 +34,7 @@ var loginCmd = &cobra.Command{
 var listAccountsCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"accounts", "ls"},
-	Short:   "List all authenticated Google accounts",
+	Short:   "List all authenticated Google accounts (aliases: accounts, ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		accounts, err := auth.ListAccounts()
 		if err != nil {

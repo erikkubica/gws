@@ -53,8 +53,9 @@ func buildTaskNotes(notes, link string) string {
 }
 
 var tasksListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List tasks",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List tasks (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := tasks.NewService(context.Background())
 		if err != nil {
@@ -118,9 +119,10 @@ var tasksDoneCmd = &cobra.Command{
 }
 
 var tasksDeleteCmd = &cobra.Command{
-	Use:   "delete [task_id]",
-	Short: "Delete a task by ID",
-	Args:  cobra.ExactArgs(1),
+	Use:     "delete [task_id]",
+	Aliases: []string{"rm"},
+	Short:   "Delete a task by ID (aliases: rm)",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := tasks.NewService(context.Background())
 		if err != nil {
@@ -177,8 +179,9 @@ var tasksCreateListCmd = &cobra.Command{
 }
 
 var tasksDeleteListCmd = &cobra.Command{
-	Use:   "delete-list [list_id]",
-	Short: "Delete a task list by ID",
+	Use:     "delete-list [list_id]",
+	Aliases: []string{"rm-list"},
+	Short:   "Delete a task list by ID (aliases: rm-list)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := tasks.NewService(context.Background())

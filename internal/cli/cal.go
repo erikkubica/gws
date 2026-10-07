@@ -43,8 +43,9 @@ func printCalendarItem(e calendar.EventSummary) {
 }
 
 var calListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List upcoming events",
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "List upcoming events (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := calendar.NewService(context.Background())
 		if err != nil {
@@ -71,9 +72,10 @@ var calListCmd = &cobra.Command{
 }
 
 var calAddCmd = &cobra.Command{
-	Use:   "add [text]",
-	Short: "Quick-add an event with natural language",
-	Args:  cobra.ExactArgs(1),
+	Use:     "add [text]",
+	Aliases: []string{"quick-add"},
+	Short:   "Quick-add an event with natural language (aliases: quick-add)",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := calendar.NewService(context.Background())
 		if err != nil {
@@ -123,8 +125,9 @@ var calCreateCmd = &cobra.Command{
 }
 
 var calDeleteCmd = &cobra.Command{
-	Use:   "delete [event_id]",
-	Short: "Delete a calendar event by ID",
+	Use:     "delete [event_id]",
+	Aliases: []string{"rm"},
+	Short:   "Delete a calendar event by ID (aliases: rm)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := calendar.NewService(context.Background())

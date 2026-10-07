@@ -83,7 +83,7 @@ func resolveClientArgs(args []string) (string, string) {
 var gcpStatusCmd = &cobra.Command{
 	Use:     "status",
 	Aliases: []string{"show"},
-	Short:   "Display configured GCP OAuth application details",
+	Short:   "Display configured GCP OAuth application details (aliases: show)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		creds, err := auth.LoadGCPCredentials()
 		if err != nil {

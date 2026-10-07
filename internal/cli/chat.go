@@ -23,8 +23,9 @@ var chatCmd = &cobra.Command{
 }
 
 var chatSpacesCmd = &cobra.Command{
-	Use:   "spaces",
-	Short: "List joined Google Chat spaces and direct messages",
+	Use:     "spaces",
+	Aliases: []string{"rooms", "dms"},
+	Short:   "List joined Google Chat spaces and direct messages (aliases: rooms, dms)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := chat.NewService(context.Background())
 		if err != nil {
@@ -41,6 +42,19 @@ var chatSpacesCmd = &cobra.Command{
 		}
 		printSpacesTable(spaces)
 		return nil
+	},
+}
+
+var chatMessagesCmd = &cobra.Command{
+	Use:     "messages [space_id]",
+	Aliases: []string{"msgs"},
+	Short:   "List messages from a Google Chat space or direct message (aliases: msgs)",
+	Args:    cobra.MaximumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("space_id is required (e.g. 'gws chat messages spaces/AAAA...'). Run 'gws chat spaces' to list available spaces")
+		}
+		return runListMessages(args[0])
 	},
 }
 
@@ -156,8 +170,8 @@ var chatReactionsCmd = &cobra.Command{
 
 var chatListCmd = &cobra.Command{
 	Use:     "list [space_id|spaces]",
-	Aliases: []string{"messages", "msgs"},
-	Short:   "List Google Chat spaces, or messages from a space",
+	Aliases: []string{"ls"},
+	Short:   "List spaces, or messages from a space (aliases: ls)",
 	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 || args[0] == "spaces" {
@@ -222,6 +236,9 @@ func init() {
 	chatSpacesCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of spaces to return")
 	chatSpacesCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
 
+	chatMessagesCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of messages to return")
+	chatMessagesCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
+
 	chatListCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of messages to return")
 	chatListCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
 
@@ -231,10 +248,11 @@ func init() {
 	chatReplyCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
 
 	chatCmd.AddCommand(chatSpacesCmd)
+	chatCmd.AddCommand(chatMessagesCmd)
+	chatCmd.AddCommand(chatListCmd)
 	chatCmd.AddCommand(chatSendCmd)
 	chatCmd.AddCommand(chatReplyCmd)
 	chatCmd.AddCommand(chatReactCmd)
 	chatCmd.AddCommand(chatReactionsCmd)
-	chatCmd.AddCommand(chatListCmd)
 	chatCmd.AddCommand(chatWebhookCmd)
 }
