@@ -46,14 +46,13 @@ func printSpacesTable(spaces []*chat.SpaceInfo) {
 		fmt.Println("No Google Chat spaces found.")
 		return
 	}
-	fmt.Printf("%-32s  %-24s  %s\n", "NAME / ID", "TYPE", "DISPLAY NAME")
+	fmt.Printf("%-28s  %-16s  %s\n", "NAME / ID", "TYPE", "CONVERSATION / SPACE NAME")
 	for _, sp := range spaces {
-		name := sp.Name
 		title := sp.DisplayName
 		if title == "" {
 			title = "(Direct Message)"
 		}
-		fmt.Printf("%-32s  %-24s  %s\n", name, sp.SpaceType, title)
+		fmt.Printf("%-28s  %-16s  %s\n", sp.Name, sp.SpaceType, title)
 	}
 }
 
