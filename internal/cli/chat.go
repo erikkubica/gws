@@ -11,11 +11,9 @@ import (
 )
 
 var (
-	chatMax        int64
-	chatJSON       bool
-	chatReplyTo    string
-	chatAttachment string
-	chatAsc        bool
+	chatMax  int64
+	chatJSON bool
+	chatAsc  bool
 )
 
 var chatCmd = &cobra.Command{
@@ -64,109 +62,21 @@ func printSpacesTable(spaces []*chat.SpaceInfo) {
 		fmt.Println("No Google Chat spaces found.")
 		return
 	}
-	fmt.Printf("%-28s  %-16s  %s\n", "NAME / ID", "TYPE", "CONVERSATION / SPACE NAME")
+	fmt.Printf("%-28s  %-16s  %-20s  %s\n", "NAME / ID", "TYPE", "LAST ACTIVE", "CONVERSATION / SPACE NAME")
 	for _, sp := range spaces {
 		title := sp.DisplayName
 		if title == "" {
 			title = "(Direct Message)"
 		}
-		fmt.Printf("%-28s  %-16s  %s\n", sp.Name, sp.SpaceType, title)
+		lastActive := sp.LastActiveTime
+		if len(lastActive) > 19 {
+			lastActive = lastActive[:10] + " " + lastActive[11:19]
+		}
+		if lastActive == "" {
+			lastActive = "-"
+		}
+		fmt.Printf("%-28s  %-16s  %-20s  %s\n", sp.Name, sp.SpaceType, lastActive, title)
 	}
-}
-
-var chatSendCmd = &cobra.Command{
-	Use:   "send [space_id] [message_text]",
-	Short: "Send a message to a Google Chat space or direct message",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		space := args[0]
-		text := args[1]
-		opts := chat.MessageOptions{
-			SpaceName:  space,
-			Text:       text,
-			ReplyTo:    chatReplyTo,
-			Attachment: chatAttachment,
-		}
-		msg, err := svc.SendMessageWithOptions(opts)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("Message delivered! ID: %s (Time: %s)\n", msg.Name, msg.CreateTime)
-		return nil
-	},
-}
-
-var chatReplyCmd = &cobra.Command{
-	Use:   "reply [space_id] [message_id] [message_text]",
-	Short: "Reply to a specific message in a Google Chat thread",
-	Args:  cobra.ExactArgs(3),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		space := args[0]
-		msgID := args[1]
-		text := args[2]
-		opts := chat.MessageOptions{
-			SpaceName:  space,
-			Text:       text,
-			ReplyTo:    msgID,
-			Attachment: chatAttachment,
-		}
-		msg, err := svc.SendMessageWithOptions(opts)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("Reply posted! ID: %s (Thread: %s)\n", msg.Name, msg.ThreadName)
-		return nil
-	},
-}
-
-var chatReactCmd = &cobra.Command{
-	Use:   "react [message_name_or_id] [emoji]",
-	Short: "Add an emoji reaction to a message (e.g. '👍', '❤️', '🔥')",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		msgName := args[0]
-		emoji := args[1]
-		if err := svc.AddReaction(msgName, emoji); err != nil {
-			return err
-		}
-		fmt.Printf("Reaction %s added to message!\n", emoji)
-		return nil
-	},
-}
-
-var chatReactionsCmd = &cobra.Command{
-	Use:   "reactions [message_name_or_id]",
-	Short: "List emoji reactions on a specific message",
-	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		msgName := args[0]
-		emojis, err := svc.ListReactions(msgName)
-		if err != nil {
-			return err
-		}
-		if len(emojis) == 0 {
-			fmt.Println("No reactions on this message.")
-			return nil
-		}
-		fmt.Printf("Reactions: %s\n", strings.Join(emojis, " "))
-		return nil
-	},
 }
 
 var chatListCmd = &cobra.Command{
@@ -210,31 +120,35 @@ func printMessagesTable(msgs []*chat.MessageInfo) {
 		return
 	}
 	for _, m := range msgs {
-		sender := m.SenderName
-		if sender == "" {
-			sender = "Unknown"
-		}
-		fmt.Printf("[%s] %s (ID: %s):\n  %s\n\n", m.CreateTime, sender, m.Name, m.Text)
+		printMessageItem(m)
 	}
 }
 
-var chatWebhookCmd = &cobra.Command{
-	Use:   "webhook [webhook_url] [message_text]",
-	Short: "Post a message to an incoming Google Chat webhook URL",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
-		}
-		url := args[0]
-		text := args[1]
-		if err := svc.SendWebhook(url, text); err != nil {
-			return err
-		}
-		fmt.Println("Webhook message delivered successfully!")
-		return nil
-	},
+func printMessageItem(m *chat.MessageInfo) {
+	sender := m.SenderName
+	if sender == "" {
+		sender = "Unknown"
+	}
+	if m.SenderID != "" {
+		sender = fmt.Sprintf("%s (%s)", sender, m.SenderID)
+	}
+	reactionsStr := formatReactionsString(m.Reactions)
+	if reactionsStr != "" {
+		fmt.Printf("[%s] %s (ID: %s):\n  %s\n%s\n", m.CreateTime, sender, m.Name, m.Text, reactionsStr)
+		return
+	}
+	fmt.Printf("[%s] %s (ID: %s):\n  %s\n\n", m.CreateTime, sender, m.Name, m.Text)
+}
+
+func formatReactionsString(reactions []chat.ReactionSummary) string {
+	if len(reactions) == 0 {
+		return ""
+	}
+	var parts []string
+	for _, r := range reactions {
+		parts = append(parts, fmt.Sprintf("%s %d", r.Emoji, r.Count))
+	}
+	return "  Reactions: " + strings.Join(parts, "  ") + "\n"
 }
 
 func init() {
@@ -249,17 +163,7 @@ func init() {
 	chatListCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
 	chatListCmd.Flags().BoolVar(&chatAsc, "asc", false, "List in ascending order (oldest first; default is newest first)")
 
-	chatSendCmd.Flags().StringVar(&chatReplyTo, "reply-to", "", "Message ID to reply to (starts or continues thread)")
-	chatSendCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
-
-	chatReplyCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
-
 	chatCmd.AddCommand(chatSpacesCmd)
 	chatCmd.AddCommand(chatMessagesCmd)
 	chatCmd.AddCommand(chatListCmd)
-	chatCmd.AddCommand(chatSendCmd)
-	chatCmd.AddCommand(chatReplyCmd)
-	chatCmd.AddCommand(chatReactCmd)
-	chatCmd.AddCommand(chatReactionsCmd)
-	chatCmd.AddCommand(chatWebhookCmd)
 }

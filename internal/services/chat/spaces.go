@@ -12,11 +12,12 @@ import (
 
 // SpaceInfo represents a Google Chat space or direct message room.
 type SpaceInfo struct {
-	Name        string   `json:"name"`
-	DisplayName string   `json:"display_name"`
-	Type        string   `json:"type"`
-	SpaceType   string   `json:"space_type"`
-	Members     []string `json:"members,omitempty"`
+	Name           string   `json:"name"`
+	DisplayName    string   `json:"display_name"`
+	Type           string   `json:"type"`
+	SpaceType      string   `json:"space_type"`
+	LastActiveTime string   `json:"last_active_time,omitempty"`
+	Members        []string `json:"members,omitempty"`
 }
 
 // NormalizeSpaceName ensures the resource name has the required 'spaces/' prefix.
@@ -116,11 +117,12 @@ func detectCurrentUserName(spaces []*chat.Space, memberMap map[string][]string) 
 
 func (s *Service) resolveSpaceInfo(sp *chat.Space, members []string, currentUser string) *SpaceInfo {
 	info := &SpaceInfo{
-		Name:        sp.Name,
-		DisplayName: sp.DisplayName,
-		Type:        sp.Type,
-		SpaceType:   sp.SpaceType,
-		Members:     members,
+		Name:           sp.Name,
+		DisplayName:    sp.DisplayName,
+		Type:           sp.Type,
+		SpaceType:      sp.SpaceType,
+		LastActiveTime: sp.LastActiveTime,
+		Members:        members,
 	}
 	if info.DisplayName != "" {
 		return info

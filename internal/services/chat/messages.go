@@ -20,13 +20,21 @@ type MessageOptions struct {
 	Attachment string
 }
 
+// ReactionSummary represents aggregated emoji reaction counts on a message.
+type ReactionSummary struct {
+	Emoji string `json:"emoji"`
+	Count int64  `json:"count"`
+}
+
 // MessageInfo represents a Google Chat message.
 type MessageInfo struct {
-	Name       string `json:"name"`
-	Text       string `json:"text"`
-	SenderName string `json:"sender_name"`
-	CreateTime string `json:"create_time"`
-	ThreadName string `json:"thread_name,omitempty"`
+	Name       string            `json:"name"`
+	Text       string            `json:"text"`
+	SenderName string            `json:"sender_name"`
+	SenderID   string            `json:"sender_id,omitempty"`
+	CreateTime string            `json:"create_time"`
+	ThreadName string            `json:"thread_name,omitempty"`
+	Reactions  []ReactionSummary `json:"reactions,omitempty"`
 }
 
 // SendMessage delivers a text message to a designated space.
@@ -96,10 +104,24 @@ func (s *Service) configureReplyThread(spaceName, replyTo string, msg *chat.Mess
 	return nil
 }
 
+func parseReactions(summaries []*chat.EmojiReactionSummary) []ReactionSummary {
+	var reactions []ReactionSummary
+	for _, summary := range summaries {
+		if summary.Emoji != nil && summary.Emoji.Unicode != "" {
+			reactions = append(reactions, ReactionSummary{
+				Emoji: summary.Emoji.Unicode,
+				Count: summary.ReactionCount,
+			})
+		}
+	}
+	return reactions
+}
+
 func formatMessageInfo(res *chat.Message) *MessageInfo {
-	sender := ""
+	sender, senderID := "", ""
 	if res.Sender != nil {
 		sender = res.Sender.DisplayName
+		senderID = res.Sender.Name
 	}
 	thread := ""
 	if res.Thread != nil {
@@ -109,8 +131,10 @@ func formatMessageInfo(res *chat.Message) *MessageInfo {
 		Name:       res.Name,
 		Text:       res.Text,
 		SenderName: sender,
+		SenderID:   senderID,
 		CreateTime: res.CreateTime,
 		ThreadName: thread,
+		Reactions:  parseReactions(res.EmojiReactionSummaries),
 	}
 }
 
@@ -128,11 +152,12 @@ func (s *Service) ListMessagesWithOrder(spaceName string, pageSize int64, order 
 	if pageSize <= 0 {
 		pageSize = 20
 	}
-	if order != "ASC" && order != "DESC" {
-		order = "DESC"
+	orderQuery := "createTime DESC"
+	if strings.EqualFold(order, "ASC") {
+		orderQuery = "createTime ASC"
 	}
 
-	call := s.client.Spaces.Messages.List(resName).PageSize(pageSize).OrderBy(order)
+	call := s.client.Spaces.Messages.List(resName).PageSize(pageSize).OrderBy(orderQuery)
 	res, err := call.Do()
 	if err != nil {
 		return nil, fmt.Errorf("list messages for %s: %w", resName, err)
