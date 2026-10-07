@@ -19,6 +19,7 @@ func buildYTSearchTool() mcp.Tool {
 		mcp.WithDescription("Search videos on YouTube"),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Search terms")),
 		mcp.WithNumber("max", mcp.Description("Max number of videos (default 10)")),
+		accountOption(),
 	)
 }
 
@@ -26,12 +27,13 @@ func buildYTDetailsTool() mcp.Tool {
 	return mcp.NewTool("youtube_video_details",
 		mcp.WithDescription("Retrieve stats, views, and description for a specific YouTube video"),
 		mcp.WithString("video_id", mcp.Required(), mcp.Description("The YouTube video ID")),
+		accountOption(),
 	)
 }
 
 func handleYTSearch(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := youtube.NewService(ctx)
+		svc, err := youtube.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -51,7 +53,7 @@ func handleYTSearch(ctx context.Context) server.ToolHandlerFunc {
 
 func handleYTDetails(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := youtube.NewService(ctx)
+		svc, err := youtube.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

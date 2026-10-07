@@ -20,6 +20,7 @@ func buildSheetsReadTool() mcp.Tool {
 		mcp.WithDescription("Read cell values from a Google Spreadsheet range (e.g. 'Sheet1!A1:E10')"),
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the Google Spreadsheet")),
 		mcp.WithString("range", mcp.Required(), mcp.Description("A1 notation range to read")),
+		accountOption(),
 	)
 }
 
@@ -29,12 +30,13 @@ func buildSheetsAppendTool() mcp.Tool {
 		mcp.WithString("spreadsheet_id", mcp.Required(), mcp.Description("The ID of the Google Spreadsheet")),
 		mcp.WithString("range", mcp.Required(), mcp.Description("A1 notation range or sheet name (e.g. 'Sheet1!A1')")),
 		mcp.WithString("values", mcp.Required(), mcp.Description("Comma-separated or JSON array of cell values for the row")),
+		accountOption(),
 	)
 }
 
 func handleReadSheet(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := sheets.NewService(ctx)
+		svc, err := sheets.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -58,7 +60,7 @@ func handleReadSheet(ctx context.Context) server.ToolHandlerFunc {
 
 func handleAppendSheet(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := sheets.NewService(ctx)
+		svc, err := sheets.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

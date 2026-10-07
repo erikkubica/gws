@@ -27,6 +27,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 	registerSheetsTools(ctx, s)
 	registerDocsTools(ctx, s)
 	registerMeetTools(ctx, s)
+	registerAccountTools(s)
 
 	return &Server{mcpServer: s}, nil
 }

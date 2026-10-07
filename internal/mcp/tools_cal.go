@@ -24,6 +24,7 @@ func buildCalListTool() mcp.Tool {
 		mcp.WithDescription("List upcoming events from Google Calendar"),
 		mcp.WithNumber("max", mcp.Description("Max number of events (default 10)")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
+		accountOption(),
 	)
 }
 
@@ -32,6 +33,7 @@ func buildCalAddTool() mcp.Tool {
 		mcp.WithDescription("Add a calendar event using natural language (e.g. 'Lunch with John tomorrow at 1pm')"),
 		mcp.WithString("text", mcp.Required(), mcp.Description("Natural language event description")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
+		accountOption(),
 	)
 }
 
@@ -46,6 +48,7 @@ func buildCalCreateTool() mcp.Tool {
 		mcp.WithBoolean("with_meet", mcp.Description("Generate Google Meet video conference link")),
 		mcp.WithString("attendees", mcp.Description("Comma-separated attendee email addresses")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
+		accountOption(),
 	)
 }
 
@@ -55,6 +58,7 @@ func buildCalRespondTool() mcp.Tool {
 		mcp.WithString("event_id", mcp.Required(), mcp.Description("The ID of the event to respond to")),
 		mcp.WithString("response", mcp.Required(), mcp.Description("RSVP response: 'accepted', 'declined', or 'tentative'")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
+		accountOption(),
 	)
 }
 
@@ -63,12 +67,13 @@ func buildCalDeleteTool() mcp.Tool {
 		mcp.WithDescription("Delete a calendar event by ID"),
 		mcp.WithString("event_id", mcp.Required(), mcp.Description("The ID of the event to delete")),
 		mcp.WithString("calendar_id", mcp.Description("Calendar ID (default 'primary')")),
+		accountOption(),
 	)
 }
 
 func handleListEvents(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := calendar.NewService(ctx)
+		svc, err := calendar.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -85,7 +90,7 @@ func handleListEvents(ctx context.Context) server.ToolHandlerFunc {
 
 func handleQuickAddEvent(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := calendar.NewService(ctx)
+		svc, err := calendar.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -104,7 +109,7 @@ func handleQuickAddEvent(ctx context.Context) server.ToolHandlerFunc {
 
 func handleCreateEvent(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := calendar.NewService(ctx)
+		svc, err := calendar.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -149,7 +154,7 @@ func parseAttendeesList(raw string) []string {
 
 func handleRespondEvent(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := calendar.NewService(ctx)
+		svc, err := calendar.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -166,7 +171,7 @@ func handleRespondEvent(ctx context.Context) server.ToolHandlerFunc {
 
 func handleDeleteEvent(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := calendar.NewService(ctx)
+		svc, err := calendar.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

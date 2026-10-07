@@ -21,12 +21,13 @@ func buildMeetCreateTool() mcp.Tool {
 		mcp.WithString("start", mcp.Description("Start time in RFC3339 (defaults to now)")),
 		mcp.WithString("end", mcp.Description("End time in RFC3339 (defaults to start + 30m)")),
 		mcp.WithString("attendees", mcp.Description("Comma-separated attendee emails to invite")),
+		accountOption(),
 	)
 }
 
 func handleCreateMeet(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := calendar.NewService(ctx)
+		svc, err := calendar.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

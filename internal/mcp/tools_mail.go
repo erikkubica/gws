@@ -25,6 +25,7 @@ func buildListTool() mcp.Tool {
 		mcp.WithDescription("List and search messages in Gmail inbox"),
 		mcp.WithString("query", mcp.Description("Gmail search query (e.g. 'is:unread', 'from:someone@domain.com')")),
 		mcp.WithNumber("max", mcp.Description("Max number of messages to return (default 10)")),
+		accountOption(),
 	)
 }
 
@@ -32,6 +33,7 @@ func buildGetTool() mcp.Tool {
 	return mcp.NewTool("gmail_get_message",
 		mcp.WithDescription("Read full content of a specific Gmail message by ID"),
 		mcp.WithString("id", mcp.Required(), mcp.Description("The unique Gmail message ID")),
+		accountOption(),
 	)
 }
 
@@ -42,6 +44,7 @@ func buildSendTool() mcp.Tool {
 		mcp.WithString("subject", mcp.Required(), mcp.Description("Email subject line")),
 		mcp.WithString("body", mcp.Required(), mcp.Description("Email plain text body")),
 		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
+		accountOption(),
 	)
 }
 
@@ -51,6 +54,7 @@ func buildReplyTool() mcp.Tool {
 		mcp.WithString("message_id", mcp.Required(), mcp.Description("The original message ID to reply to")),
 		mcp.WithString("body", mcp.Required(), mcp.Description("Reply body text")),
 		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
+		accountOption(),
 	)
 }
 
@@ -61,6 +65,7 @@ func buildDraftTool() mcp.Tool {
 		mcp.WithString("subject", mcp.Required(), mcp.Description("Email subject line")),
 		mcp.WithString("body", mcp.Required(), mcp.Description("Email plain text body")),
 		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
+		accountOption(),
 	)
 }
 
@@ -68,6 +73,7 @@ func buildDraftsListTool() mcp.Tool {
 	return mcp.NewTool("gmail_list_drafts",
 		mcp.WithDescription("List existing draft messages in Gmail"),
 		mcp.WithNumber("max", mcp.Description("Max number of drafts to return (default 10)")),
+		accountOption(),
 	)
 }
 
@@ -75,12 +81,13 @@ func buildSendDraftTool() mcp.Tool {
 	return mcp.NewTool("gmail_send_draft",
 		mcp.WithDescription("Send an existing draft email by its draft ID"),
 		mcp.WithString("draft_id", mcp.Required(), mcp.Description("The ID of the draft to send")),
+		accountOption(),
 	)
 }
 
 func handleListMessages(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -97,7 +104,7 @@ func handleListMessages(ctx context.Context) server.ToolHandlerFunc {
 
 func handleGetMessage(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -116,7 +123,7 @@ func handleGetMessage(ctx context.Context) server.ToolHandlerFunc {
 
 func handleSendMessage(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -138,7 +145,7 @@ func handleSendMessage(ctx context.Context) server.ToolHandlerFunc {
 
 func handleReplyMessage(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -161,7 +168,7 @@ func handleReplyMessage(ctx context.Context) server.ToolHandlerFunc {
 
 func handleCreateDraft(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -183,7 +190,7 @@ func handleCreateDraft(ctx context.Context) server.ToolHandlerFunc {
 
 func handleListDrafts(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -199,7 +206,7 @@ func handleListDrafts(ctx context.Context) server.ToolHandlerFunc {
 
 func handleSendDraft(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := gmail.NewService(ctx)
+		svc, err := gmail.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

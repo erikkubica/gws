@@ -22,6 +22,7 @@ func buildDriveListTool() mcp.Tool {
 		mcp.WithDescription("List and search files in Google Drive"),
 		mcp.WithString("query", mcp.Description("Optional filename search term")),
 		mcp.WithNumber("max", mcp.Description("Max number of files (default 10)")),
+		accountOption(),
 	)
 }
 
@@ -29,6 +30,7 @@ func buildDriveReadTool() mcp.Tool {
 	return mcp.NewTool("drive_read_file",
 		mcp.WithDescription("Read or export text/csv content of a Google Drive file or Doc"),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file to read")),
+		accountOption(),
 	)
 }
 
@@ -37,6 +39,7 @@ func buildDriveUploadTool() mcp.Tool {
 		mcp.WithDescription("Upload a local file to Google Drive"),
 		mcp.WithString("path", mcp.Required(), mcp.Description("Local file path to upload")),
 		mcp.WithString("name", mcp.Description("Custom filename on Google Drive (optional)")),
+		accountOption(),
 	)
 }
 
@@ -44,12 +47,13 @@ func buildDriveDeleteTool() mcp.Tool {
 	return mcp.NewTool("drive_delete_file",
 		mcp.WithDescription("Permanently delete a file from Google Drive by ID"),
 		mcp.WithString("file_id", mcp.Required(), mcp.Description("The ID of the file to delete")),
+		accountOption(),
 	)
 }
 
 func handleListDriveFiles(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := drive.NewService(ctx)
+		svc, err := drive.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -66,7 +70,7 @@ func handleListDriveFiles(ctx context.Context) server.ToolHandlerFunc {
 
 func handleReadDriveFile(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := drive.NewService(ctx)
+		svc, err := drive.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -84,7 +88,7 @@ func handleReadDriveFile(ctx context.Context) server.ToolHandlerFunc {
 
 func handleUploadDriveFile(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := drive.NewService(ctx)
+		svc, err := drive.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -103,7 +107,7 @@ func handleUploadDriveFile(ctx context.Context) server.ToolHandlerFunc {
 
 func handleDeleteDriveFile(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := drive.NewService(ctx)
+		svc, err := drive.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

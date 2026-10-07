@@ -25,6 +25,7 @@ func buildTasksListTool() mcp.Tool {
 		mcp.WithDescription("List tasks and todos from Google Tasks"),
 		mcp.WithNumber("max", mcp.Description("Max tasks to return (default 20)")),
 		mcp.WithString("list_id", mcp.Description("Task list ID (default '@default')")),
+		accountOption(),
 	)
 }
 
@@ -37,6 +38,7 @@ func buildTasksAddTool() mcp.Tool {
 		mcp.WithString("list_id", mcp.Description("Task list ID (default '@default')")),
 		mcp.WithString("parent_id", mcp.Description("Parent task ID for creating a subtask")),
 		mcp.WithString("link", mcp.Description("Attachment link or URL to append to notes")),
+		accountOption(),
 	)
 }
 
@@ -45,6 +47,7 @@ func buildTasksDoneTool() mcp.Tool {
 		mcp.WithDescription("Mark a task as completed in Google Tasks"),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to complete")),
 		mcp.WithString("list_id", mcp.Description("Task list ID (default '@default')")),
+		accountOption(),
 	)
 }
 
@@ -53,12 +56,14 @@ func buildTasksDeleteTool() mcp.Tool {
 		mcp.WithDescription("Permanently delete a task from Google Tasks"),
 		mcp.WithString("task_id", mcp.Required(), mcp.Description("The ID of the task to delete")),
 		mcp.WithString("list_id", mcp.Description("Task list ID (default '@default')")),
+		accountOption(),
 	)
 }
 
 func buildTasksListListsTool() mcp.Tool {
 	return mcp.NewTool("tasks_list_tasklists",
 		mcp.WithDescription("List all task lists belonging to the user"),
+		accountOption(),
 	)
 }
 
@@ -66,6 +71,7 @@ func buildTasksCreateListTool() mcp.Tool {
 	return mcp.NewTool("tasks_create_tasklist",
 		mcp.WithDescription("Create a new task list"),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Task list title")),
+		accountOption(),
 	)
 }
 
@@ -73,12 +79,13 @@ func buildTasksDeleteListTool() mcp.Tool {
 	return mcp.NewTool("tasks_delete_tasklist",
 		mcp.WithDescription("Delete a task list by ID"),
 		mcp.WithString("list_id", mcp.Required(), mcp.Description("Task list ID to delete")),
+		accountOption(),
 	)
 }
 
 func handleListTasks(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -95,7 +102,7 @@ func handleListTasks(ctx context.Context) server.ToolHandlerFunc {
 
 func handleAddTask(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -122,7 +129,7 @@ func handleAddTask(ctx context.Context) server.ToolHandlerFunc {
 
 func handleDoneTask(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -139,7 +146,7 @@ func handleDoneTask(ctx context.Context) server.ToolHandlerFunc {
 
 func handleDeleteTask(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -155,7 +162,7 @@ func handleDeleteTask(ctx context.Context) server.ToolHandlerFunc {
 
 func handleListTaskLists(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -170,7 +177,7 @@ func handleListTaskLists(ctx context.Context) server.ToolHandlerFunc {
 
 func handleCreateTaskList(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -185,7 +192,7 @@ func handleCreateTaskList(ctx context.Context) server.ToolHandlerFunc {
 
 func handleDeleteTaskList(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := tasks.NewService(ctx)
+		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}

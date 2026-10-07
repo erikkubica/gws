@@ -87,3 +87,8 @@ Authentication is configured in `~/.config/gws/token.json`.
 - View active MCP token: `gws mcp token --show`
 - Revoke active MCP token: `gws mcp token --revoke`
 
+## 👥 Multi-Account Usage in MCP Tools
+- **Account Discovery**: Call `workspace_list_accounts` to inspect configured accounts and identify the active one.
+- **Switching Active Account**: Call `workspace_switch_account` with `account: "<email>"` to switch the default account.
+- **Per-Tool Override**: Every MCP tool (Gmail, Calendar, Drive, Docs, Sheets, Tasks, YouTube, Meet) accepts an optional `account` string argument (e.g. `account: "work@example.com"`). When provided, the tool executes specifically for that account without altering the active default.
+

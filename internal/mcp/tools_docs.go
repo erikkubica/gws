@@ -19,6 +19,7 @@ func buildDocsCreateTool() mcp.Tool {
 	return mcp.NewTool("docs_create_document",
 		mcp.WithDescription("Create a new Google Document"),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Title of the new document")),
+		accountOption(),
 	)
 }
 
@@ -27,6 +28,7 @@ func buildDocsAppendTool() mcp.Tool {
 		mcp.WithDescription("Append text to an existing Google Document"),
 		mcp.WithString("doc_id", mcp.Required(), mcp.Description("The ID of the document")),
 		mcp.WithString("text", mcp.Required(), mcp.Description("Text to append to the document")),
+		accountOption(),
 	)
 }
 
@@ -34,12 +36,13 @@ func buildDocsReadTool() mcp.Tool {
 	return mcp.NewTool("docs_read_document",
 		mcp.WithDescription("Read full text content of a Google Document"),
 		mcp.WithString("doc_id", mcp.Required(), mcp.Description("The ID of the document")),
+		accountOption(),
 	)
 }
 
 func handleCreateDoc(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := docs.NewService(ctx)
+		svc, err := docs.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -58,7 +61,7 @@ func handleCreateDoc(ctx context.Context) server.ToolHandlerFunc {
 
 func handleAppendDoc(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := docs.NewService(ctx)
+		svc, err := docs.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
@@ -73,7 +76,7 @@ func handleAppendDoc(ctx context.Context) server.ToolHandlerFunc {
 
 func handleReadDoc(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		svc, err := docs.NewService(ctx)
+		svc, err := docs.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
