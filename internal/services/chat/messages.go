@@ -114,8 +114,13 @@ func formatMessageInfo(res *chat.Message) *MessageInfo {
 	}
 }
 
-// ListMessages retrieves recent messages from a space.
+// ListMessages retrieves recent messages from a space (newest first).
 func (s *Service) ListMessages(spaceName string, pageSize int64) ([]*MessageInfo, error) {
+	return s.ListMessagesWithOrder(spaceName, pageSize, "DESC")
+}
+
+// ListMessagesWithOrder retrieves messages with specified ordering ("DESC" or "ASC").
+func (s *Service) ListMessagesWithOrder(spaceName string, pageSize int64, order string) ([]*MessageInfo, error) {
 	resName := NormalizeSpaceName(spaceName)
 	if resName == "" {
 		return nil, fmt.Errorf("space name cannot be empty")
@@ -123,8 +128,11 @@ func (s *Service) ListMessages(spaceName string, pageSize int64) ([]*MessageInfo
 	if pageSize <= 0 {
 		pageSize = 20
 	}
+	if order != "ASC" && order != "DESC" {
+		order = "DESC"
+	}
 
-	call := s.client.Spaces.Messages.List(resName).PageSize(pageSize)
+	call := s.client.Spaces.Messages.List(resName).PageSize(pageSize).OrderBy(order)
 	res, err := call.Do()
 	if err != nil {
 		return nil, fmt.Errorf("list messages for %s: %w", resName, err)

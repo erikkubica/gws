@@ -58,9 +58,10 @@ func buildChatListReactionsTool() mcp.Tool {
 
 func buildChatListMessagesTool() mcp.Tool {
 	return mcp.NewTool("chat_list_messages",
-		mcp.WithDescription("List recent messages from a Google Chat space"),
+		mcp.WithDescription("List messages from a Google Chat space (newest first by default)"),
 		mcp.WithString("space", mcp.Required(), mcp.Description("Space resource name or ID (e.g. 'spaces/AAAA...')")),
 		mcp.WithNumber("max", mcp.Description("Max messages to return (default 20)")),
+		mcp.WithString("order", mcp.Description("Order by create time: 'DESC' (newest first, default) or 'ASC' (oldest first)")),
 		accountOption(),
 	)
 }
@@ -149,7 +150,8 @@ func handleChatListMessages() server.ToolHandlerFunc {
 		}
 		space, _ := req.RequireString("space")
 		max := int64(req.GetInt("max", 20))
-		msgs, err := svc.ListMessages(space, max)
+		order := strings.ToUpper(req.GetString("order", "DESC"))
+		msgs, err := svc.ListMessagesWithOrder(space, max, order)
 		if err != nil {
 			return mcp.NewToolResultError("list messages error: " + err.Error()), nil
 		}

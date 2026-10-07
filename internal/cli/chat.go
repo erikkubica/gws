@@ -15,6 +15,7 @@ var (
 	chatJSON       bool
 	chatReplyTo    string
 	chatAttachment string
+	chatAsc        bool
 )
 
 var chatCmd = &cobra.Command{
@@ -186,7 +187,11 @@ func runListMessages(space string) error {
 	if err != nil {
 		return err
 	}
-	msgs, err := svc.ListMessages(space, chatMax)
+	order := "DESC"
+	if chatAsc {
+		order = "ASC"
+	}
+	msgs, err := svc.ListMessagesWithOrder(space, chatMax, order)
 	if err != nil {
 		return err
 	}
@@ -238,9 +243,11 @@ func init() {
 
 	chatMessagesCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of messages to return")
 	chatMessagesCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
+	chatMessagesCmd.Flags().BoolVar(&chatAsc, "asc", false, "List in ascending order (oldest first; default is newest first)")
 
 	chatListCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of messages to return")
 	chatListCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
+	chatListCmd.Flags().BoolVar(&chatAsc, "asc", false, "List in ascending order (oldest first; default is newest first)")
 
 	chatSendCmd.Flags().StringVar(&chatReplyTo, "reply-to", "", "Message ID to reply to (starts or continues thread)")
 	chatSendCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
