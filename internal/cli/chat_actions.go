@@ -148,4 +148,24 @@ func init() {
 	chatCmd.AddCommand(chatReactCmd)
 	chatCmd.AddCommand(chatReactionsCmd)
 	chatCmd.AddCommand(chatSearchCmd)
+	chatCmd.AddCommand(chatSettingCmd)
+}
+
+var chatSettingCmd = &cobra.Command{
+	Use:   "setting [space_id]",
+	Short: "Get notification and mute setting for a space",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := chat.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		setting, err := svc.GetSpaceNotificationSetting(args[0])
+		if err != nil {
+			return err
+		}
+		b, _ := json.MarshalIndent(setting, "", "  ")
+		fmt.Println(string(b))
+		return nil
+	},
 }

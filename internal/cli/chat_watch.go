@@ -25,6 +25,7 @@ var (
 	watchNotify   bool
 	watchExec     string
 	watchJSON     bool
+	watchExclude  []string
 )
 
 var chatWatchCmd = &cobra.Command{
@@ -85,11 +86,16 @@ func seedAllSpaces(svc *chat.Service, buffer *chat.BurstBuffer, activities map[s
 		return fmt.Errorf("seed all spaces: %w", err)
 	}
 	for _, sp := range spaces {
+		if isSpaceExcluded(svc, sp.Name, sp.DisplayName) {
+			continue
+		}
 		activities[sp.Name] = sp.LastActiveTime
 	}
 	for i := 0; i < len(spaces) && i < 10; i++ {
-		msgs, _ := svc.ListMessagesWithOrder(spaces[i].Name, 5, "DESC")
-		buffer.SeedIDs(msgs)
+		if !isSpaceExcluded(svc, spaces[i].Name, spaces[i].DisplayName) {
+			msgs, _ := svc.ListMessagesWithOrder(spaces[i].Name, 5, "DESC")
+			buffer.SeedIDs(msgs)
+		}
 	}
 	return nil
 }
@@ -147,6 +153,9 @@ func pollAndFlushAll(svc *chat.Service, buffer *chat.BurstBuffer, activities map
 	current, err := svc.ListSpaceActivities(50)
 	if err == nil {
 		for _, sp := range current {
+			if isSpaceExcluded(svc, sp.Name, sp.DisplayName) {
+				continue
+			}
 			if prevTime, exists := activities[sp.Name]; !exists || sp.LastActiveTime != prevTime {
 				activities[sp.Name] = sp.LastActiveTime
 				msgs, _ := svc.ListMessagesWithOrder(sp.Name, 5, "DESC")
@@ -249,12 +258,35 @@ func extractSpaceID(messageResourceName string) string {
 	return messageResourceName
 }
 
+func isSpaceExcluded(svc *chat.Service, spaceID, displayName string) bool {
+	if matchesExcludeList(spaceID, displayName, watchExclude) {
+		return true
+	}
+	return svc != nil && svc.IsSpaceMuted(spaceID)
+}
+
+func matchesExcludeList(spaceID, displayName string, excludes []string) bool {
+	sLower := strings.ToLower(strings.TrimSpace(spaceID))
+	dLower := strings.ToLower(strings.TrimSpace(displayName))
+	for _, ex := range excludes {
+		p := strings.ToLower(strings.TrimSpace(ex))
+		if p == "" {
+			continue
+		}
+		if strings.Contains(sLower, p) || (dLower != "" && strings.Contains(dLower, p)) {
+			return true
+		}
+	}
+	return false
+}
+
 func init() {
 	chatWatchCmd.Flags().DurationVar(&watchInterval, "interval", 10*time.Second, "Polling interval (e.g. 5s, 10s, 30s)")
 	chatWatchCmd.Flags().DurationVar(&watchDebounce, "debounce", 0, "Debounce duration to coalesce message bursts (e.g. 30s)")
 	chatWatchCmd.Flags().BoolVar(&watchNotify, "notify", false, "Deliver native desktop notification on new message/burst")
 	chatWatchCmd.Flags().StringVar(&watchExec, "exec", "", "Shell command to execute on each message or debounced burst")
 	chatWatchCmd.Flags().BoolVar(&watchJSON, "json", false, "Stream JSON payloads to stdout")
+	chatWatchCmd.Flags().StringSliceVar(&watchExclude, "exclude", nil, "Space IDs or names to exclude from watching (comma-separated or repeatable)")
 
 	chatCmd.AddCommand(chatWatchCmd)
 }

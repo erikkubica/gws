@@ -27,6 +27,7 @@ var Scopes = []string{
 	chat.ChatSpacesScope,
 	chat.ChatMessagesScope,
 	chat.ChatMembershipsReadonlyScope,
+	"https://www.googleapis.com/auth/chat.users.spacesettings",
 }
 
 // SelectedAccount stores an account override set via CLI flags or programmatic calls.

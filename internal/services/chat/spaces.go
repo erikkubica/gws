@@ -241,6 +241,7 @@ func spaceMatchesQuery(sp *SpaceInfo, query string) bool {
 // SpaceActivity represents minimal activity timestamp for a space.
 type SpaceActivity struct {
 	Name           string `json:"name"`
+	DisplayName    string `json:"display_name,omitempty"`
 	LastActiveTime string `json:"last_active_time,omitempty"`
 }
 
@@ -257,8 +258,25 @@ func (s *Service) ListSpaceActivities(pageSize int64) ([]SpaceActivity, error) {
 	for _, sp := range res.Spaces {
 		list = append(list, SpaceActivity{
 			Name:           sp.Name,
+			DisplayName:    sp.DisplayName,
 			LastActiveTime: sp.LastActiveTime,
 		})
 	}
 	return list, nil
+}
+
+// GetSpaceNotificationSetting returns the user's notification/mute setting for a space.
+func (s *Service) GetSpaceNotificationSetting(spaceName string) (*chat.SpaceNotificationSetting, error) {
+	space := NormalizeSpaceName(spaceName)
+	name := fmt.Sprintf("users/me/%s/spaceNotificationSetting", space)
+	return s.client.Users.Spaces.SpaceNotificationSetting.Get(name).Do()
+}
+
+// IsSpaceMuted checks if the space is muted or notifications are turned off by the user.
+func (s *Service) IsSpaceMuted(spaceName string) bool {
+	setting, err := s.GetSpaceNotificationSetting(spaceName)
+	if err != nil {
+		return false
+	}
+	return setting.MuteSetting == "MUTED" || setting.NotificationSetting == "OFF"
 }
