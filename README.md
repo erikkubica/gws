@@ -145,6 +145,15 @@ gws mail send --to "client@example.com" --subject "Update" --body "Hello" --dela
 # Reply to an existing thread
 gws mail reply <message_id> --body "Thanks, let's meet tomorrow." --meet
 
+# Read full email message content and inspect attachments
+gws mail read <message_id>
+
+# Download email attachments (aliases: att, attachment)
+gws mail download <message_id>                     # Download single attachment or all if multiple
+gws mail download <message_id> --dir ./downloads   # Save to destination directory
+gws mail download <message_id> contract.pdf        # Download specific file by name
+gws mail download <message_id> <att_id> -o out.pdf # Download by ID to specific output path
+
 # Manage drafts
 gws mail draft --to "lead@company.com" --subject "Proposal" --body "Draft proposal content."
 gws mail drafts

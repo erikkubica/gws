@@ -18,6 +18,7 @@ func registerGmailTools(ctx context.Context, s *server.MCPServer) {
 	s.AddTool(buildDraftTool(), handleCreateDraft(ctx))
 	s.AddTool(buildDraftsListTool(), handleListDrafts(ctx))
 	s.AddTool(buildSendDraftTool(), handleSendDraft(ctx))
+	s.AddTool(buildDownloadAttachmentTool(), handleDownloadAttachment(ctx))
 }
 
 func buildListTool() mcp.Tool {
@@ -221,3 +222,37 @@ func handleSendDraft(ctx context.Context) server.ToolHandlerFunc {
 		return mcp.NewToolResultText(fmt.Sprintf("Draft sent successfully. ID: %s", msg.Id)), nil
 	}
 }
+
+func buildDownloadAttachmentTool() mcp.Tool {
+	return mcp.NewTool("gmail_download_attachment",
+		mcp.WithDescription("Download an attachment from a Gmail message to a local file"),
+		mcp.WithString("message_id", mcp.Required(), mcp.Description("The message ID containing the attachment")),
+		mcp.WithString("attachment_id", mcp.Required(), mcp.Description("The attachment ID or filename to download")),
+		mcp.WithString("destination_path", mcp.Description("Local destination file or directory path (defaults to current directory)")),
+		accountOption(),
+	)
+}
+
+func handleDownloadAttachment(ctx context.Context) server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := gmail.NewService(withAccountContext(c, req))
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		msgID, err := req.RequireString("message_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		attID, err := req.RequireString("attachment_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		dest := req.GetString("destination_path", ".")
+		file, err := svc.SaveAttachment(msgID, attID, dest)
+		if err != nil {
+			return mcp.NewToolResultError("download failed: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Saved attachment '%s' (%d bytes) to %s", file.Filename, file.Size, dest)), nil
+	}
+}
+

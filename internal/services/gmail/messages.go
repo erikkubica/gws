@@ -4,17 +4,19 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
+	"sync"
 
 	"google.golang.org/api/gmail/v1"
 )
 
-// MessageSummary contains minimal headers for list displays.
+// MessageSummary contains headers and attachments for list displays.
 type MessageSummary struct {
-	ID      string `json:"id"`
-	From    string `json:"from"`
-	Subject string `json:"subject"`
-	Snippet string `json:"snippet"`
-	Date    string `json:"date"`
+	ID          string           `json:"id"`
+	From        string           `json:"from"`
+	Subject     string           `json:"subject"`
+	Snippet     string           `json:"snippet"`
+	Date        string           `json:"date"`
+	Attachments []AttachmentInfo `json:"attachments,omitempty"`
 }
 
 // MessageDetail contains full body and headers.
@@ -40,38 +42,53 @@ func (s *Service) ListMessages(query string, max int64) ([]MessageSummary, error
 	return s.fetchSummaries(res.Messages)
 }
 
-// fetchSummaries converts message stubs into summarized messages.
+// fetchSummaries converts message stubs into summarized messages concurrently.
 func (s *Service) fetchSummaries(stubs []*gmail.Message) ([]MessageSummary, error) {
-	var summaries []MessageSummary
-	for _, stub := range stubs {
-		msg, err := s.client.Users.Messages.Get("me", stub.Id).Format("metadata").MetadataHeaders("From", "Subject", "Date").Do()
-		if err != nil {
-			continue
-		}
-		summaries = append(summaries, extractSummary(msg))
+	summaries := make([]MessageSummary, len(stubs))
+	var wg sync.WaitGroup
+	for i, stub := range stubs {
+		wg.Add(1)
+		go func(idx int, id string) {
+			defer wg.Done()
+			msg, err := s.client.Users.Messages.Get("me", id).Format("full").Do()
+			if err == nil {
+				summaries[idx] = extractSummary(msg)
+			}
+		}(i, stub.Id)
 	}
-	return summaries, nil
+	wg.Wait()
+
+	var result []MessageSummary
+	for _, sum := range summaries {
+		if sum.ID != "" {
+			result = append(result, sum)
+		}
+	}
+	return result, nil
 }
 
-// extractSummary parses headers and snippet from a Gmail API message.
+// extractSummary parses headers, snippet, and attachments from a Gmail API message.
 func extractSummary(m *gmail.Message) MessageSummary {
 	var from, subject, date string
-	for _, h := range m.Payload.Headers {
-		switch strings.ToLower(h.Name) {
-		case "from":
-			from = h.Value
-		case "subject":
-			subject = h.Value
-		case "date":
-			date = h.Value
+	if m.Payload != nil {
+		for _, h := range m.Payload.Headers {
+			switch strings.ToLower(h.Name) {
+			case "from":
+				from = h.Value
+			case "subject":
+				subject = h.Value
+			case "date":
+				date = h.Value
+			}
 		}
 	}
 	return MessageSummary{
-		ID:      m.Id,
-		From:    from,
-		Subject: subject,
-		Snippet: m.Snippet,
-		Date:    date,
+		ID:          m.Id,
+		From:        from,
+		Subject:     subject,
+		Snippet:     m.Snippet,
+		Date:        date,
+		Attachments: extractAttachments(m.Payload),
 	}
 }
 

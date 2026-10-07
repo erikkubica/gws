@@ -71,7 +71,11 @@ var mailListCmd = &cobra.Command{
 			return nil
 		}
 		for _, m := range msgs {
-			fmt.Printf("[%s] %s | %s\n  %s\n\n", m.ID, m.Date, m.From, m.Subject)
+			fmt.Printf("[%s] %s | %s\n  %s\n", m.ID, m.Date, m.From, m.Subject)
+			for _, att := range m.Attachments {
+				fmt.Printf("  📎 %s (%s)\n", att.Filename, formatBytes(att.Size))
+			}
+			fmt.Println()
 		}
 		return nil
 	},
@@ -95,7 +99,18 @@ var mailReadCmd = &cobra.Command{
 			fmt.Println(string(b))
 			return nil
 		}
-		fmt.Printf("From: %s\nDate: %s\nSubject: %s\n\n%s\n", msg.From, msg.Date, msg.Subject, msg.Body)
+		fmt.Printf("From: %s\nDate: %s\nSubject: %s\n", msg.From, msg.Date, msg.Subject)
+		if len(msg.Attachments) > 0 {
+			fmt.Println("\nAttachments:")
+			for _, att := range msg.Attachments {
+				attID := att.AttachmentID
+				if attID == "" {
+					attID = "inline"
+				}
+				fmt.Printf("  📎 %s (%s) [ID: %s]\n", att.Filename, formatBytes(att.Size), attID)
+			}
+		}
+		fmt.Printf("\n%s\n", msg.Body)
 		return nil
 	},
 }
@@ -198,4 +213,5 @@ func init() {
 	mailCmd.AddCommand(mailReplyCmd)
 
 	initDraftCommands()
+	initAttachmentCommands()
 }
