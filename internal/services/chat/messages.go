@@ -26,15 +26,25 @@ type ReactionSummary struct {
 	Count int64  `json:"count"`
 }
 
+// AttachmentInfo represents metadata for a Chat message attachment.
+type AttachmentInfo struct {
+	Name        string `json:"name,omitempty"`
+	ContentName string `json:"content_name,omitempty"`
+	ContentType string `json:"content_type,omitempty"`
+	DownloadURL string `json:"download_url,omitempty"`
+	Source      string `json:"source,omitempty"`
+}
+
 // MessageInfo represents a Google Chat message.
 type MessageInfo struct {
-	Name       string            `json:"name"`
-	Text       string            `json:"text"`
-	SenderName string            `json:"sender_name"`
-	SenderID   string            `json:"sender_id,omitempty"`
-	CreateTime string            `json:"create_time"`
-	ThreadName string            `json:"thread_name,omitempty"`
-	Reactions  []ReactionSummary `json:"reactions,omitempty"`
+	Name        string            `json:"name"`
+	Text        string            `json:"text"`
+	SenderName  string            `json:"sender_name"`
+	SenderID    string            `json:"sender_id,omitempty"`
+	CreateTime  string            `json:"create_time"`
+	ThreadName  string            `json:"thread_name,omitempty"`
+	Reactions   []ReactionSummary `json:"reactions,omitempty"`
+	Attachments []AttachmentInfo  `json:"attachments,omitempty"`
 }
 
 // SendMessage delivers a text message to a designated space.
@@ -117,6 +127,20 @@ func parseReactions(summaries []*chat.EmojiReactionSummary) []ReactionSummary {
 	return reactions
 }
 
+func parseAttachments(attachments []*chat.Attachment) []AttachmentInfo {
+	var list []AttachmentInfo
+	for _, a := range attachments {
+		list = append(list, AttachmentInfo{
+			Name:        a.Name,
+			ContentName: a.ContentName,
+			ContentType: a.ContentType,
+			DownloadURL: a.DownloadUri,
+			Source:      a.Source,
+		})
+	}
+	return list
+}
+
 func formatMessageInfo(res *chat.Message) *MessageInfo {
 	sender, senderID := "", ""
 	if res.Sender != nil {
@@ -128,13 +152,14 @@ func formatMessageInfo(res *chat.Message) *MessageInfo {
 		thread = res.Thread.Name
 	}
 	return &MessageInfo{
-		Name:       res.Name,
-		Text:       res.Text,
-		SenderName: sender,
-		SenderID:   senderID,
-		CreateTime: res.CreateTime,
-		ThreadName: thread,
-		Reactions:  parseReactions(res.EmojiReactionSummaries),
+		Name:        res.Name,
+		Text:        res.Text,
+		SenderName:  sender,
+		SenderID:    senderID,
+		CreateTime:  res.CreateTime,
+		ThreadName:  thread,
+		Reactions:   parseReactions(res.EmojiReactionSummaries),
+		Attachments: parseAttachments(res.Attachment),
 	}
 }
 

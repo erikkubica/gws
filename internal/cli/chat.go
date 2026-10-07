@@ -132,12 +132,33 @@ func printMessageItem(m *chat.MessageInfo) {
 	if m.SenderID != "" {
 		sender = fmt.Sprintf("%s (%s)", sender, m.SenderID)
 	}
-	reactionsStr := formatReactionsString(m.Reactions)
-	if reactionsStr != "" {
-		fmt.Printf("[%s] %s (ID: %s):\n  %s\n%s\n", m.CreateTime, sender, m.Name, m.Text, reactionsStr)
-		return
+	fmt.Printf("[%s] %s (ID: %s):\n  %s\n", m.CreateTime, sender, m.Name, m.Text)
+	if attachStr := formatAttachmentsString(m.Attachments); attachStr != "" {
+		fmt.Print(attachStr)
 	}
-	fmt.Printf("[%s] %s (ID: %s):\n  %s\n\n", m.CreateTime, sender, m.Name, m.Text)
+	if reactionsStr := formatReactionsString(m.Reactions); reactionsStr != "" {
+		fmt.Print(reactionsStr)
+	}
+	fmt.Println()
+}
+
+func formatAttachmentsString(attachments []chat.AttachmentInfo) string {
+	if len(attachments) == 0 {
+		return ""
+	}
+	var parts []string
+	for _, a := range attachments {
+		name := a.ContentName
+		if name == "" {
+			name = "attachment"
+		}
+		if a.DownloadURL != "" {
+			parts = append(parts, fmt.Sprintf("📎 %s (%s)", name, a.DownloadURL))
+		} else {
+			parts = append(parts, fmt.Sprintf("📎 %s", name))
+		}
+	}
+	return "  " + strings.Join(parts, "\n  ") + "\n"
 }
 
 func formatReactionsString(reactions []chat.ReactionSummary) string {

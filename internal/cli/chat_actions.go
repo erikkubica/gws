@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/erikkubica/gws/internal/services/chat"
 	"github.com/spf13/cobra"
@@ -81,22 +80,31 @@ var chatReactCmd = &cobra.Command{
 
 var chatReactionsCmd = &cobra.Command{
 	Use:   "reactions [message_name_or_id]",
-	Short: "List emoji reactions on a specific message",
+	Short: "List emoji reactions and users on a specific message",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := chat.NewService(context.Background())
 		if err != nil {
 			return err
 		}
-		emojis, err := svc.ListReactions(args[0])
+		reactions, err := svc.ListReactions(args[0])
 		if err != nil {
 			return err
 		}
-		if len(emojis) == 0 {
+		if len(reactions) == 0 {
 			fmt.Println("No reactions on this message.")
 			return nil
 		}
-		fmt.Printf("Reactions: %s\n", strings.Join(emojis, " "))
+		for _, r := range reactions {
+			user := r.DisplayName
+			if user == "" {
+				user = r.UserName
+			}
+			if user == "" {
+				user = "Unknown user"
+			}
+			fmt.Printf("  %s  %s (%s)\n", r.Emoji, user, r.UserName)
+		}
 		return nil
 	},
 }

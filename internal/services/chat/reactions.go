@@ -40,8 +40,15 @@ func (s *Service) AddReaction(messageName, emoji string) error {
 	return nil
 }
 
-// ListReactions returns the emoji reactions on a message.
-func (s *Service) ListReactions(messageName string) ([]string, error) {
+// UserReaction represents an emoji reaction with the identity of the user who reacted.
+type UserReaction struct {
+	Emoji       string `json:"emoji"`
+	UserName    string `json:"user_name,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+}
+
+// ListReactions returns the emoji reactions and the users who reacted on a message.
+func (s *Service) ListReactions(messageName string) ([]UserReaction, error) {
 	cleanMsg := strings.TrimSpace(messageName)
 	if cleanMsg == "" {
 		return nil, fmt.Errorf("message name cannot be empty")
@@ -50,11 +57,26 @@ func (s *Service) ListReactions(messageName string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list reactions for %s: %w", cleanMsg, err)
 	}
-	var emojis []string
+	var reactions []UserReaction
 	for _, r := range res.Reactions {
-		if r.Emoji != nil && r.Emoji.Unicode != "" {
-			emojis = append(emojis, r.Emoji.Unicode)
-		}
+		reactions = append(reactions, formatUserReaction(r))
 	}
-	return emojis, nil
+	return reactions, nil
+}
+
+func formatUserReaction(r *chat.Reaction) UserReaction {
+	emoji := ""
+	if r.Emoji != nil {
+		emoji = r.Emoji.Unicode
+	}
+	userName, displayName := "", ""
+	if r.User != nil {
+		userName = r.User.Name
+		displayName = r.User.DisplayName
+	}
+	return UserReaction{
+		Emoji:       emoji,
+		UserName:    userName,
+		DisplayName: displayName,
+	}
 }

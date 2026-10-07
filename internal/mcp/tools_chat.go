@@ -134,11 +134,12 @@ func handleChatListReactions() server.ToolHandlerFunc {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
 		msgName, _ := req.RequireString("message_name")
-		emojis, err := svc.ListReactions(msgName)
+		reactions, err := svc.ListReactions(msgName)
 		if err != nil {
 			return mcp.NewToolResultError("list reactions error: " + err.Error()), nil
 		}
-		return mcp.NewToolResultText(fmt.Sprintf("Reactions: %s", strings.Join(emojis, " "))), nil
+		b, _ := json.MarshalIndent(reactions, "", "  ")
+		return mcp.NewToolResultText(string(b)), nil
 	}
 }
 
