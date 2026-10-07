@@ -44,3 +44,24 @@ func TestNormalizeSpaceName(t *testing.T) {
 		}
 	})
 }
+
+func TestNormalizeMessageName(t *testing.T) {
+	t.Run("nominal_cases", func(t *testing.T) {
+		got1 := NormalizeMessageName("spaces/AAA", "spaces/AAA/messages/BBB")
+		if got1 != "spaces/AAA/messages/BBB" {
+			t.Errorf("expected full path preserved, got %q", got1)
+		}
+
+		got2 := NormalizeMessageName("AAA", "BBB")
+		if got2 != "spaces/AAA/messages/BBB" {
+			t.Errorf("expected constructed path, got %q", got2)
+		}
+	})
+
+	t.Run("boundary_thresholds", func(t *testing.T) {
+		got := NormalizeMessageName("spaces/X", "M")
+		if got != "spaces/X/messages/M" {
+			t.Errorf("expected 'spaces/X/messages/M', got %q", got)
+		}
+	})
+}

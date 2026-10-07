@@ -230,8 +230,15 @@ gws docs append <doc_id> "Key decisions made during sprint kickoff.\n"
 # List joined spaces and direct messages
 gws chat spaces --json
 
-# Send message to a space or direct message
-gws chat send "spaces/AAAA..." "Hello team! Build v1.0.0 completed."
+# Send message (with optional file attachment)
+gws chat send "spaces/AAAA..." "Hello team! Spec document attached." --attach ./spec.pdf
+
+# Reply to a specific message in a thread
+gws chat reply "spaces/AAAA..." <message_id> "Acknowledged, on it!"
+
+# React with an emoji to a message
+gws chat react <message_name_or_id> "👍"
+gws chat reactions <message_name_or_id>
 
 # Read recent messages from a space
 gws chat list "spaces/AAAA..." --max 10

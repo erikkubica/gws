@@ -67,7 +67,10 @@ Authentication is configured in `~/.config/gws/token.json`.
 
 ### 💬 Google Chat (`gws chat`)
 - List spaces & DMs: `gws chat spaces [--max 20] [--json]`
-- Send message: `gws chat send <space_id> "<message>"`
+- Send message: `gws chat send <space_id> "<message>" [--reply-to <msg_id>] [--attach <path>]`
+- Reply in thread: `gws chat reply <space_id> <message_id> "<message>" [--attach <path>]`
+- Add emoji reaction: `gws chat react <message_name_or_id> "<emoji>"`
+- List reactions: `gws chat reactions <message_name_or_id>`
 - List recent messages: `gws chat list <space_id> [--max 20] [--json]`
 - Send to webhook URL: `gws chat webhook <webhook_url> "<message>"`
 

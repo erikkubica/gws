@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/erikkubica/gws/internal/services/chat"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -14,6 +15,8 @@ func registerChatTools(s *server.MCPServer) {
 	s.AddTool(buildChatListSpacesTool(), handleChatListSpaces())
 	s.AddTool(buildChatSendMessageTool(), handleChatSendMessage())
 	s.AddTool(buildChatListMessagesTool(), handleChatListMessages())
+	s.AddTool(buildChatReactTool(), handleChatReact())
+	s.AddTool(buildChatListReactionsTool(), handleChatListReactions())
 	s.AddTool(buildChatSendWebhookTool(), handleChatSendWebhook())
 }
 
@@ -27,9 +30,28 @@ func buildChatListSpacesTool() mcp.Tool {
 
 func buildChatSendMessageTool() mcp.Tool {
 	return mcp.NewTool("chat_send_message",
-		mcp.WithDescription("Send a text message to a Google Chat space or direct message room"),
-		mcp.WithString("space", mcp.Required(), mcp.Description("Space resource name or ID (e.g. 'spaces/AAAA...' or 'AAAA...')")),
+		mcp.WithDescription("Send a message, reply to a thread, or upload an attachment to a Google Chat space"),
+		mcp.WithString("space", mcp.Required(), mcp.Description("Space name or ID (e.g. 'spaces/AAAA...')")),
 		mcp.WithString("text", mcp.Required(), mcp.Description("Message plain text")),
+		mcp.WithString("reply_to", mcp.Description("Optional parent message ID to reply to in a thread")),
+		mcp.WithString("attachment", mcp.Description("Optional absolute local file path to attach")),
+		accountOption(),
+	)
+}
+
+func buildChatReactTool() mcp.Tool {
+	return mcp.NewTool("chat_react_message",
+		mcp.WithDescription("Add an emoji reaction to a Google Chat message (e.g. '👍', '❤️', '🔥')"),
+		mcp.WithString("message_name", mcp.Required(), mcp.Description("Full message resource name or ID")),
+		mcp.WithString("emoji", mcp.Required(), mcp.Description("Emoji character")),
+		accountOption(),
+	)
+}
+
+func buildChatListReactionsTool() mcp.Tool {
+	return mcp.NewTool("chat_list_reactions",
+		mcp.WithDescription("List emoji reactions on a Google Chat message"),
+		mcp.WithString("message_name", mcp.Required(), mcp.Description("Full message resource name or ID")),
 		accountOption(),
 	)
 }
@@ -75,11 +97,47 @@ func handleChatSendMessage() server.ToolHandlerFunc {
 		}
 		space, _ := req.RequireString("space")
 		text, _ := req.RequireString("text")
-		msg, err := svc.SendMessage(space, text)
+		opts := chat.MessageOptions{
+			SpaceName:  space,
+			Text:       text,
+			ReplyTo:    req.GetString("reply_to", ""),
+			Attachment: req.GetString("attachment", ""),
+		}
+		msg, err := svc.SendMessageWithOptions(opts)
 		if err != nil {
 			return mcp.NewToolResultError("send error: " + err.Error()), nil
 		}
-		return mcp.NewToolResultText(fmt.Sprintf("Message delivered to %s! ID: %s", space, msg.Name)), nil
+		return mcp.NewToolResultText(fmt.Sprintf("Message delivered! ID: %s", msg.Name)), nil
+	}
+}
+
+func handleChatReact() server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := chat.NewService(withAccountContext(c, req))
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		msgName, _ := req.RequireString("message_name")
+		emoji, _ := req.RequireString("emoji")
+		if err := svc.AddReaction(msgName, emoji); err != nil {
+			return mcp.NewToolResultError("react error: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Reaction %s added successfully!", emoji)), nil
+	}
+}
+
+func handleChatListReactions() server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := chat.NewService(withAccountContext(c, req))
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		msgName, _ := req.RequireString("message_name")
+		emojis, err := svc.ListReactions(msgName)
+		if err != nil {
+			return mcp.NewToolResultError("list reactions error: " + err.Error()), nil
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("Reactions: %s", strings.Join(emojis, " "))), nil
 	}
 }
 
