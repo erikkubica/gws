@@ -1,7 +1,7 @@
 {
 	"name": "google-workspace-plugin",
 	"displayName": "Google Workspace (gws)",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Packaged collection of skills and MCP tools to help the Agent in Antigravity work with Google Workspace and developer products.",
 	"author": {
 		"name": "Erik Kubica"
@@ -16,6 +16,7 @@
 		"sheets",
 		"meet",
 		"tasks",
+		"chat",
 		"youtube",
 		"gws"
 	]
