@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/erikkubica/gws/internal/auth"
@@ -27,8 +26,7 @@ var mcpServerCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start the Model Context Protocol (MCP) server (stdio by default, or SSE via --port)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
-		s, err := mcp.NewServer(ctx)
+		s, err := mcp.NewServer(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("initialize mcp server: %w", err)
 		}

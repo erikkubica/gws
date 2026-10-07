@@ -2,12 +2,14 @@ package gmail
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"mime"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"google.golang.org/api/gmail/v1"
 )
@@ -32,7 +34,7 @@ func composeRaw(to, subject, body string) string {
 // composeMIME formats a MIME message (with multipart if attachments exist).
 func composeMIME(opts EmailOptions) (string, error) {
 	buf := new(bytes.Buffer)
-	boundary := "gws_boundary_part"
+	boundary := generateBoundary()
 	writeHeaders(buf, opts, boundary)
 
 	fmt.Fprintf(buf, "--%s\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\n\r\n%s\r\n", boundary, opts.Body)
@@ -44,13 +46,36 @@ func composeMIME(opts EmailOptions) (string, error) {
 	return base64.URLEncoding.EncodeToString(buf.Bytes()), nil
 }
 
+func sanitizeHeader(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strings.TrimSpace(s)
+}
+
+func encodeSubject(subject string) string {
+	clean := sanitizeHeader(subject)
+	if clean == "" {
+		return ""
+	}
+	return mime.QEncoding.Encode("utf-8", clean)
+}
+
+func generateBoundary() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return fmt.Sprintf("gws_boundary_%d", time.Now().UnixNano())
+	}
+	return fmt.Sprintf("gws_boundary_%x", b)
+}
+
 func writeHeaders(buf *bytes.Buffer, opts EmailOptions, boundary string) {
-	fmt.Fprintf(buf, "To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\n", opts.To, opts.Subject)
+	cleanTo := sanitizeHeader(opts.To)
+	fmt.Fprintf(buf, "To: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\n", cleanTo, encodeSubject(opts.Subject))
 	if opts.InReplyTo != "" {
-		fmt.Fprintf(buf, "In-Reply-To: %s\r\n", opts.InReplyTo)
+		fmt.Fprintf(buf, "In-Reply-To: %s\r\n", sanitizeHeader(opts.InReplyTo))
 	}
 	if opts.References != "" {
-		fmt.Fprintf(buf, "References: %s\r\n", opts.References)
+		fmt.Fprintf(buf, "References: %s\r\n", sanitizeHeader(opts.References))
 	}
 	fmt.Fprintf(buf, "Content-Type: multipart/mixed; boundary=\"%s\"\r\n\r\n", boundary)
 }
@@ -119,19 +144,7 @@ func (s *Service) ReplyMessage(msgID, body string, attachments []string) (*gmail
 }
 
 func buildReplyOptions(m *gmail.Message, body string, attachments []string) EmailOptions {
-	var to, subj, msgID, refs string
-	for _, h := range m.Payload.Headers {
-		switch strings.ToLower(h.Name) {
-		case "from":
-			to = h.Value
-		case "subject":
-			subj = h.Value
-		case "message-id":
-			msgID = h.Value
-		case "references":
-			refs = h.Value
-		}
-	}
+	to, subj, msgID, refs := extractReplyHeaders(m.Payload.Headers)
 	if !strings.HasPrefix(strings.ToLower(subj), "re:") {
 		subj = "Re: " + subj
 	}
@@ -144,4 +157,20 @@ func buildReplyOptions(m *gmail.Message, body string, attachments []string) Emai
 		To: to, Subject: subj, Body: body, InReplyTo: msgID,
 		References: refs, ThreadID: m.ThreadId, Attachments: attachments,
 	}
+}
+
+func extractReplyHeaders(headers []*gmail.MessagePartHeader) (to, subj, msgID, refs string) {
+	for _, h := range headers {
+		switch strings.ToLower(h.Name) {
+		case "from":
+			to = h.Value
+		case "subject":
+			subj = h.Value
+		case "message-id":
+			msgID = h.Value
+		case "references":
+			refs = h.Value
+		}
+	}
+	return
 }

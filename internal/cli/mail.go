@@ -57,7 +57,7 @@ var mailListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List or search messages (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -86,7 +86,7 @@ var mailReadCmd = &cobra.Command{
 	Short: "Read a specific message by ID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -115,11 +115,11 @@ var mailReadCmd = &cobra.Command{
 	},
 }
 
-func appendMeetIfNeeded(subj, to, body string) (string, error) {
+func appendMeetIfNeeded(ctx context.Context, subj, to, body string) (string, error) {
 	if !mailWithMeet {
 		return body, nil
 	}
-	calSvc, err := calendar.NewService(context.Background())
+	calSvc, err := calendar.NewService(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -140,11 +140,11 @@ var mailSendCmd = &cobra.Command{
 		if err := waitSchedule(mailDelay, mailAt); err != nil {
 			return err
 		}
-		body, err := appendMeetIfNeeded(mailSubj, mailTo, mailBody)
+		body, err := appendMeetIfNeeded(cmd.Context(), mailSubj, mailTo, mailBody)
 		if err != nil {
 			return err
 		}
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -169,11 +169,11 @@ var mailReplyCmd = &cobra.Command{
 		if err := waitSchedule(mailDelay, mailAt); err != nil {
 			return err
 		}
-		body, err := appendMeetIfNeeded("Meeting Followup", mailTo, mailBody)
+		body, err := appendMeetIfNeeded(cmd.Context(), "Meeting Followup", mailTo, mailBody)
 		if err != nil {
 			return err
 		}
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

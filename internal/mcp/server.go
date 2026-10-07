@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/erikkubica/gws/internal/version"
 	"github.com/mark3labs/mcp-go/server"
 )
 
@@ -17,7 +18,7 @@ type Server struct {
 
 // NewServer builds and registers all tool suites for Google Workspace services.
 func NewServer(ctx context.Context) (*Server, error) {
-	s := server.NewMCPServer("gws", "1.1.1", server.WithResourceCapabilities(true, true))
+	s := server.NewMCPServer("gws", version.Version, server.WithResourceCapabilities(true, true))
 
 	registerGmailTools(ctx, s)
 	registerCalendarTools(ctx, s)

@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"strings"
 	"testing"
+
+	"github.com/erikkubica/gws/internal/services/chat"
 )
 
 func TestMatchesExcludeList(t *testing.T) {
@@ -38,5 +41,50 @@ func TestMatchesExcludeList(t *testing.T) {
 				t.Errorf("matchesExcludeList(%q, %q) = %v, want %v", tc.spaceID, tc.displayName, result, tc.expected)
 			}
 		})
+	}
+}
+
+func TestBuildWatchEnv(t *testing.T) {
+	msgs := []*chat.MessageInfo{
+		{
+			Name:       "spaces/space123/messages/msg001",
+			SenderName: "Alice",
+			SenderID:   "users/alice1",
+			ThreadName: "spaces/space123/threads/t1",
+			Text:       "First message",
+		},
+		{
+			Name:       "spaces/space123/messages/msg002",
+			SenderName: "Bob",
+			SenderID:   "users/bob2",
+			ThreadName: "spaces/space123/threads/t1",
+			Text:       "Second message",
+		},
+	}
+	payload := []byte(`{"event":"burst"}`)
+	env := buildWatchEnv("all", msgs, payload)
+
+	envMap := make(map[string]string)
+	for _, e := range env {
+		parts := strings.SplitN(e, "=", 2)
+		if len(parts) == 2 {
+			envMap[parts[0]] = parts[1]
+		}
+	}
+
+	if envMap["GWS_SPACE_ID"] != "spaces/space123" {
+		t.Errorf("expected GWS_SPACE_ID 'spaces/space123', got %q", envMap["GWS_SPACE_ID"])
+	}
+	if envMap["GWS_MESSAGE_COUNT"] != "2" {
+		t.Errorf("expected GWS_MESSAGE_COUNT '2', got %q", envMap["GWS_MESSAGE_COUNT"])
+	}
+	if envMap["GWS_MESSAGE_ID"] != "spaces/space123/messages/msg002" {
+		t.Errorf("expected GWS_MESSAGE_ID of latest message, got %q", envMap["GWS_MESSAGE_ID"])
+	}
+	if envMap["GWS_SENDER"] != "Bob" {
+		t.Errorf("expected GWS_SENDER 'Bob', got %q", envMap["GWS_SENDER"])
+	}
+	if envMap["GWS_PAYLOAD"] != string(payload) {
+		t.Errorf("expected GWS_PAYLOAD %q, got %q", string(payload), envMap["GWS_PAYLOAD"])
 	}
 }

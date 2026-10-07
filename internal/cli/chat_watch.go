@@ -1,20 +1,15 @@
 package cli
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
-	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/erikkubica/gws/internal/auth"
 	"github.com/erikkubica/gws/internal/services/chat"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +31,7 @@ var chatWatchCmd = &cobra.Command{
 }
 
 func runChatWatch(cmd *cobra.Command, args []string) error {
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	svc, err := chat.NewService(ctx)
@@ -195,7 +190,7 @@ func sendNotificationIfNeeded(space string, msgs []*chat.MessageInfo) {
 	latest := msgs[len(msgs)-1]
 	displaySpace := space
 	if space == "all" {
-		displaySpace = extractSpaceID(latest.Name)
+		displaySpace = chat.ExtractSpaceID(latest.Name)
 	}
 	title := fmt.Sprintf("Google Chat (%s)", displaySpace)
 	body := fmt.Sprintf("%s: %s", latest.SenderName, latest.Text)
@@ -203,59 +198,6 @@ func sendNotificationIfNeeded(space string, msgs []*chat.MessageInfo) {
 		body = fmt.Sprintf("[%d messages] Latest from %s: %s", len(msgs), latest.SenderName, latest.Text)
 	}
 	sendOSNotification(title, body)
-}
-
-func sendOSNotification(title, message string) {
-	if runtime.GOOS != "darwin" {
-		return
-	}
-	script := fmt.Sprintf("display notification %q with title %q", message, title)
-	_ = exec.Command("osascript", "-e", script).Run()
-}
-
-func executeCommandIfNeeded(space string, msgs []*chat.MessageInfo, payload []byte) {
-	if watchExec == "" || len(msgs) == 0 {
-		return
-	}
-	cmd := exec.Command("sh", "-c", watchExec)
-	cmd.Env = append(os.Environ(), buildWatchEnv(space, msgs, payload)...)
-	cmd.Stdin = bytes.NewReader(payload)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error executing watch command: %v\n", err)
-	}
-}
-
-func buildWatchEnv(space string, msgs []*chat.MessageInfo, payload []byte) []string {
-	latest := msgs[len(msgs)-1]
-	currentAcc, _ := auth.GetActiveAccount()
-	if auth.SelectedAccount != "" {
-		currentAcc = auth.SelectedAccount
-	}
-	spaceID := space
-	if spaceID == "all" && latest != nil {
-		spaceID = extractSpaceID(latest.Name)
-	}
-	return []string{
-		"GWS_ACCOUNT=" + currentAcc,
-		"GWS_SPACE_ID=" + spaceID,
-		"GWS_MESSAGE_COUNT=" + strconv.Itoa(len(msgs)),
-		"GWS_MESSAGE_ID=" + latest.Name,
-		"GWS_SENDER=" + latest.SenderName,
-		"GWS_SENDER_ID=" + latest.SenderID,
-		"GWS_THREAD=" + latest.ThreadName,
-		"GWS_TEXT=" + chat.FormatBurstText(msgs),
-		"GWS_PAYLOAD=" + string(payload),
-	}
-}
-
-func extractSpaceID(messageResourceName string) string {
-	parts := strings.Split(messageResourceName, "/")
-	if len(parts) >= 2 {
-		return parts[0] + "/" + parts[1]
-	}
-	return messageResourceName
 }
 
 func isSpaceExcluded(svc *chat.Service, spaceID, displayName string) bool {

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -57,7 +56,7 @@ var tasksListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List tasks (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -86,7 +85,7 @@ var tasksAddCmd = &cobra.Command{
 	Short: "Add a new task",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -105,7 +104,7 @@ var tasksDoneCmd = &cobra.Command{
 	Short: "Mark a task as completed",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -124,7 +123,7 @@ var tasksDeleteCmd = &cobra.Command{
 	Short:   "Delete a task by ID (aliases: rm)",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -140,7 +139,7 @@ var tasksListsCmd = &cobra.Command{
 	Use:   "lists",
 	Short: "List all task lists",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -165,7 +164,7 @@ var tasksCreateListCmd = &cobra.Command{
 	Short: "Create a new task list",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -182,9 +181,9 @@ var tasksDeleteListCmd = &cobra.Command{
 	Use:     "delete-list [list_id]",
 	Aliases: []string{"rm-list"},
 	Short:   "Delete a task list by ID (aliases: rm-list)",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := tasks.NewService(context.Background())
+		svc, err := tasks.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

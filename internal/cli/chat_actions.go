@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -19,7 +18,7 @@ var chatSendCmd = &cobra.Command{
 	Short: "Send a message to a Google Chat space or direct message",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -43,7 +42,7 @@ var chatReplyCmd = &cobra.Command{
 	Short: "Reply to a specific message in a Google Chat thread",
 	Args:  cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -67,7 +66,7 @@ var chatReactCmd = &cobra.Command{
 	Short: "Add an emoji reaction to a message (e.g. '👍', '❤️', '🔥')",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -84,7 +83,7 @@ var chatReactionsCmd = &cobra.Command{
 	Short: "List emoji reactions and users on a specific message",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -116,7 +115,7 @@ var chatSearchCmd = &cobra.Command{
 	Short:   "Search messages across all Google Chat conversations",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -156,7 +155,7 @@ var chatSettingCmd = &cobra.Command{
 	Short: "Get notification and mute setting for a space",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

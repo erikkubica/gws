@@ -113,3 +113,27 @@ func TestFormatBurstText(t *testing.T) {
 		t.Fatalf("unexpected formatted text: got %q, want %q", formatted, expected)
 	}
 }
+
+func TestBurstBuffer_BoundedSeenIDs(t *testing.T) {
+	buffer := NewBurstBuffer(10 * time.Second)
+	now := time.Now()
+
+	// Insert maxSeenIDs + 500 distinct messages
+	total := maxSeenIDs + 500
+	for i := 0; i < total; i++ {
+		msg := &MessageInfo{
+			Name: "spaces/A/messages/" + time.Now().Format("20060102150405.000000") + "_" + string(rune('a'+(i%26))) + "_" + time.Duration(i).String(),
+		}
+		buffer.Add("spaces/A", msg, now)
+	}
+
+	buffer.mu.Lock()
+	defer buffer.mu.Unlock()
+
+	if len(buffer.seenIDs) > maxSeenIDs {
+		t.Fatalf("seenIDs exceeded max capacity: got %d, max %d", len(buffer.seenIDs), maxSeenIDs)
+	}
+	if len(buffer.seenOrder) > maxSeenIDs {
+		t.Fatalf("seenOrder exceeded max capacity: got %d, max %d", len(buffer.seenOrder), maxSeenIDs)
+	}
+}

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -20,8 +19,7 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Log in with your Google account via browser",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
-		email, err := auth.LoginFlow(ctx)
+		email, err := auth.LoginFlow(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("login failed: %w", err)
 		}

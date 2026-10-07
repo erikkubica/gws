@@ -25,12 +25,12 @@ var mailDownloadCmd = &cobra.Command{
 		if len(args) > 1 {
 			target = args[1]
 		}
-		return executeAttachmentDownload(msgID, target)
+		return executeAttachmentDownload(cmd.Context(), msgID, target)
 	},
 }
 
-func executeAttachmentDownload(msgID, target string) error {
-	svc, err := gmail.NewService(context.Background())
+func executeAttachmentDownload(ctx context.Context, msgID, target string) error {
+	svc, err := gmail.NewService(ctx)
 	if err != nil {
 		return err
 	}

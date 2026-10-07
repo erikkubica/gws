@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -16,7 +15,7 @@ var mailDraftCmd = &cobra.Command{
 		if mailTo == "" || mailSubj == "" || mailBody == "" {
 			return fmt.Errorf("flags --to, --subject, and --body are all required")
 		}
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -34,7 +33,7 @@ var mailDraftsListCmd = &cobra.Command{
 	Use:   "drafts",
 	Short: "List drafts in the mailbox",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -62,7 +61,7 @@ var mailSendDraftCmd = &cobra.Command{
 		if err := waitSchedule(mailDelay, mailAt); err != nil {
 			return err
 		}
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -80,7 +79,7 @@ var mailDeleteDraftCmd = &cobra.Command{
 	Short: "Delete an existing draft",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := gmail.NewService(context.Background())
+		svc, err := gmail.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

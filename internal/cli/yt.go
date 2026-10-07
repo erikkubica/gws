@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -24,7 +23,7 @@ var ytSearchCmd = &cobra.Command{
 	Short: "Search YouTube videos",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := youtube.NewService(context.Background())
+		svc, err := youtube.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -49,7 +48,7 @@ var ytInfoCmd = &cobra.Command{
 	Short: "Get statistics and description for a video",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := youtube.NewService(context.Background())
+		svc, err := youtube.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

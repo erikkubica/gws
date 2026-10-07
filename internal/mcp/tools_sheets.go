@@ -64,18 +64,30 @@ func handleAppendSheet(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		sheetID, _ := req.RequireString("spreadsheet_id")
-		r, _ := req.RequireString("range")
-		valStr, _ := req.RequireString("values")
-
-		var row []interface{}
-		if err := json.Unmarshal([]byte(valStr), &row); err != nil {
-			row = append(row, valStr)
+		sheetID, err := req.RequireString("spreadsheet_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-
+		r, err := req.RequireString("range")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		valStr, err := req.RequireString("values")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		row := parseSheetRowValues(valStr)
 		if err := svc.AppendRow(sheetID, r, row); err != nil {
 			return mcp.NewToolResultError("append sheet error: " + err.Error()), nil
 		}
 		return mcp.NewToolResultText(fmt.Sprintf("Row appended successfully to spreadsheet %s", sheetID)), nil
 	}
+}
+
+func parseSheetRowValues(valStr string) []interface{} {
+	var row []interface{}
+	if err := json.Unmarshal([]byte(valStr), &row); err != nil {
+		row = append(row, valStr)
+	}
+	return row
 }

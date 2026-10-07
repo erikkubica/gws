@@ -27,7 +27,7 @@ var chatSpacesCmd = &cobra.Command{
 	Aliases: []string{"rooms", "dms"},
 	Short:   "List or search joined Google Chat spaces and direct messages (aliases: rooms, dms)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
+		svc, err := chat.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ var chatMessagesCmd = &cobra.Command{
 		if len(args) == 0 {
 			return fmt.Errorf("space_id is required (e.g. 'gws chat messages spaces/AAAA...'). Run 'gws chat spaces' to list available spaces")
 		}
-		return runListMessages(args[0])
+		return runListMessages(cmd.Context(), args[0])
 	},
 }
 
@@ -93,12 +93,12 @@ var chatListCmd = &cobra.Command{
 		if len(args) == 0 || args[0] == "spaces" {
 			return chatSpacesCmd.RunE(cmd, args)
 		}
-		return runListMessages(args[0])
+		return runListMessages(cmd.Context(), args[0])
 	},
 }
 
-func runListMessages(space string) error {
-	svc, err := chat.NewService(context.Background())
+func runListMessages(ctx context.Context, space string) error {
+	svc, err := chat.NewService(ctx)
 	if err != nil {
 		return err
 	}

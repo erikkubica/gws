@@ -182,12 +182,8 @@ func (s *Service) ListMessagesWithOrder(spaceName string, pageSize int64, order 
 	if pageSize <= 0 {
 		pageSize = 20
 	}
-	orderQuery := "createTime DESC"
-	if strings.EqualFold(order, "ASC") {
-		orderQuery = "createTime ASC"
-	}
 
-	call := s.client.Spaces.Messages.List(resName).PageSize(pageSize).OrderBy(orderQuery)
+	call := s.client.Spaces.Messages.List(resName).PageSize(pageSize).OrderBy(resolveOrderQuery(order))
 	res, err := call.Do()
 	if err != nil {
 		return nil, fmt.Errorf("list messages for %s: %w", resName, err)
@@ -201,15 +197,27 @@ func (s *Service) ListMessagesWithOrder(spaceName string, pageSize int64, order 
 	return msgs, nil
 }
 
+func resolveOrderQuery(order string) string {
+	if strings.EqualFold(order, "ASC") {
+		return "createTime ASC"
+	}
+	return "createTime DESC"
+}
+
+const maxReactionWorkers = 5
+
 func (s *Service) populateReactionUsers(msgs []*MessageInfo) {
+	sem := make(chan struct{}, maxReactionWorkers)
 	var wg sync.WaitGroup
 	for _, m := range msgs {
 		if len(m.Reactions) == 0 {
 			continue
 		}
 		wg.Add(1)
+		sem <- struct{}{}
 		go func(msg *MessageInfo) {
 			defer wg.Done()
+			defer func() { <-sem }()
 			s.fetchAndAttachUsers(msg)
 		}(m)
 	}

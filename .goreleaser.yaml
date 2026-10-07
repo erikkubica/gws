@@ -22,7 +22,7 @@ builds:
       - goos: windows
         goarch: arm64
     ldflags:
-      - -s -w -X github.com/erikkubica/gws/internal/cli.Version={{.Version}}
+      - -s -w -X github.com/erikkubica/gws/internal/version.Version={{.Version}} -X github.com/erikkubica/gws/internal/cli.Version={{.Version}}
 
 archives:
   - id: default

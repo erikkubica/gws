@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -27,7 +26,7 @@ var driveListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List or search files (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := drive.NewService(context.Background())
+		svc, err := drive.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -52,7 +51,7 @@ var driveReadCmd = &cobra.Command{
 	Short: "Read or export file content as text",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := drive.NewService(context.Background())
+		svc, err := drive.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -70,7 +69,7 @@ var driveUploadCmd = &cobra.Command{
 	Short: "Upload a local file to Google Drive",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := drive.NewService(context.Background())
+		svc, err := drive.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -89,7 +88,7 @@ var driveDownloadCmd = &cobra.Command{
 	Short: "Download a file or exported doc from Google Drive",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := drive.NewService(context.Background())
+		svc, err := drive.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -106,7 +105,7 @@ var driveCreateCmd = &cobra.Command{
 	Short: "Create a new file or doc in Google Drive",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := drive.NewService(context.Background())
+		svc, err := drive.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -123,9 +122,9 @@ var driveDeleteCmd = &cobra.Command{
 	Use:     "delete [file_id]",
 	Aliases: []string{"rm"},
 	Short:   "Permanently delete a file from Google Drive (aliases: rm)",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := drive.NewService(context.Background())
+		svc, err := drive.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

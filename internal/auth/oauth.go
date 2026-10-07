@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sync"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -177,15 +178,45 @@ func LoadToken() (*oauth2.Token, error) {
 	return tok, err
 }
 
-// GetClient returns an authenticated HTTP client backed by auto-refreshing token.
+type persistingTokenSource struct {
+	mu      sync.Mutex
+	source  oauth2.TokenSource
+	account string
+	last    *oauth2.Token
+}
+
+func (pts *persistingTokenSource) Token() (*oauth2.Token, error) {
+	tok, err := pts.source.Token()
+	if err != nil {
+		return nil, err
+	}
+	pts.mu.Lock()
+	defer pts.mu.Unlock()
+	if pts.last == nil || tok.AccessToken != pts.last.AccessToken {
+		pts.last = tok
+		if pts.account != "" && pts.account != "default" {
+			_ = SaveAccountToken(pts.account, tok)
+		} else {
+			_ = SaveToken(tok)
+		}
+	}
+	return tok, nil
+}
+
+// GetClient returns an authenticated HTTP client backed by auto-refreshing and persisting token.
 func GetClient(ctx context.Context) (*http.Client, error) {
 	cfg, err := LoadOAuthConfig("")
 	if err != nil {
 		return nil, err
 	}
-	tok, _, err := ResolveToken(ctx)
+	tok, account, err := ResolveToken(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("not authenticated: run 'gws auth login'")
 	}
-	return cfg.Client(ctx, tok), nil
+	pts := &persistingTokenSource{
+		source:  cfg.TokenSource(ctx, tok),
+		account: account,
+		last:    tok,
+	}
+	return oauth2.NewClient(ctx, pts), nil
 }

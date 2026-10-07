@@ -72,17 +72,21 @@ func (s *Service) ListTasks(listID string, max int64) ([]TaskSummary, error) {
 
 	var list []TaskSummary
 	for _, t := range res.Items {
-		list = append(list, TaskSummary{
-			ID:      t.Id,
-			Title:   t.Title,
-			Notes:   t.Notes,
-			Status:  t.Status,
-			Due:     t.Due,
-			Parent:  t.Parent,
-			Updated: t.Updated,
-		})
+		list = append(list, buildTaskSummary(t))
 	}
 	return list, nil
+}
+
+func buildTaskSummary(t *tasks.Task) TaskSummary {
+	return TaskSummary{
+		ID:      t.Id,
+		Title:   t.Title,
+		Notes:   t.Notes,
+		Status:  t.Status,
+		Due:     t.Due,
+		Parent:  t.Parent,
+		Updated: t.Updated,
+	}
 }
 
 // CreateTask adds a new task with title, notes, due date, and optional parent subtask ID.

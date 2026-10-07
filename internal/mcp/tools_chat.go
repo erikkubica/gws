@@ -119,13 +119,9 @@ func handleChatSendMessage() server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		space, _ := req.RequireString("space")
-		text, _ := req.RequireString("text")
-		opts := chat.MessageOptions{
-			SpaceName:  space,
-			Text:       text,
-			ReplyTo:    req.GetString("reply_to", ""),
-			Attachment: req.GetString("attachment", ""),
+		opts, err := parseChatMessageOptions(req)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		msg, err := svc.SendMessageWithOptions(opts)
 		if err != nil {
@@ -135,14 +131,37 @@ func handleChatSendMessage() server.ToolHandlerFunc {
 	}
 }
 
+func parseChatMessageOptions(req mcp.CallToolRequest) (chat.MessageOptions, error) {
+	space, err := req.RequireString("space")
+	if err != nil {
+		return chat.MessageOptions{}, err
+	}
+	text, err := req.RequireString("text")
+	if err != nil {
+		return chat.MessageOptions{}, err
+	}
+	return chat.MessageOptions{
+		SpaceName:  space,
+		Text:       text,
+		ReplyTo:    req.GetString("reply_to", ""),
+		Attachment: req.GetString("attachment", ""),
+	}, nil
+}
+
 func handleChatReact() server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		svc, err := chat.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		msgName, _ := req.RequireString("message_name")
-		emoji, _ := req.RequireString("emoji")
+		msgName, err := req.RequireString("message_name")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		emoji, err := req.RequireString("emoji")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		if err := svc.AddReaction(msgName, emoji); err != nil {
 			return mcp.NewToolResultError("react error: " + err.Error()), nil
 		}
@@ -156,7 +175,10 @@ func handleChatListReactions() server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		msgName, _ := req.RequireString("message_name")
+		msgName, err := req.RequireString("message_name")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		reactions, err := svc.ListReactions(msgName)
 		if err != nil {
 			return mcp.NewToolResultError("list reactions error: " + err.Error()), nil
@@ -172,7 +194,10 @@ func handleChatListMessages() server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		space, _ := req.RequireString("space")
+		space, err := req.RequireString("space")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		max := int64(req.GetInt("max", 20))
 		order := strings.ToUpper(req.GetString("order", "DESC"))
 		msgs, err := svc.ListMessagesWithOrder(space, max, order)

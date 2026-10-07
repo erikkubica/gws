@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -21,7 +20,7 @@ var sheetsCreateCmd = &cobra.Command{
 	Short: "Create a new Google Spreadsheet",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := sheets.NewService(context.Background())
+		svc, err := sheets.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -39,7 +38,7 @@ var sheetsAddSheetCmd = &cobra.Command{
 	Short: "Add a new sheet/tab to a spreadsheet",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := sheets.NewService(context.Background())
+		svc, err := sheets.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -56,7 +55,7 @@ var sheetsReadCmd = &cobra.Command{
 	Short: "Read cell range from a spreadsheet (e.g. 'Sheet1!A1:D10')",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := sheets.NewService(context.Background())
+		svc, err := sheets.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -84,7 +83,7 @@ var sheetsAppendCmd = &cobra.Command{
 	Short: "Append a row of values to a spreadsheet",
 	Args:  cobra.MinimumNArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := sheets.NewService(context.Background())
+		svc, err := sheets.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -107,7 +106,7 @@ var sheetsUpdateCmd = &cobra.Command{
 	Short: "Update cells at range with values",
 	Args:  cobra.MinimumNArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := sheets.NewService(context.Background())
+		svc, err := sheets.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

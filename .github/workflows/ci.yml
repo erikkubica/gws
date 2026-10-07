@@ -25,6 +25,23 @@ jobs:
       - name: Verify module dependencies
         run: go mod verify
 
+      - name: Check code formatting (gofmt)
+        run: |
+          if [ -n "$(gofmt -s -l .)" ]; then
+            echo "The following files are not formatted with gofmt -s:"
+            gofmt -s -l .
+            exit 1
+          fi
+
+      - name: Run static analysis (go vet)
+        run: go vet ./...
+
+      - name: Set up Biome
+        uses: biomejs/setup-biome@v2
+
+      - name: Run Biome check
+        run: biome check plugin/
+
       - name: Run unit tests
         run: go test -v -race ./...
 

@@ -32,7 +32,7 @@ var meetCreateCmd = &cobra.Command{
 		if len(args) > 0 {
 			title = args[0]
 		}
-		svc, err := calendar.NewService(context.Background())
+		svc, err := calendar.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ var meetSendCmd = &cobra.Command{
 		if len(args) > 0 {
 			title = args[0]
 		}
-		calSvc, err := calendar.NewService(context.Background())
+		calSvc, err := calendar.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -81,12 +81,12 @@ var meetSendCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return sendMeetEmail(meetTo, title, meetURL, ev.HtmlLink)
+		return sendMeetEmail(cmd.Context(), meetTo, title, meetURL, ev.HtmlLink)
 	},
 }
 
-func sendMeetEmail(to, title, meetURL, calLink string) error {
-	mailSvc, err := gmail.NewService(context.Background())
+func sendMeetEmail(ctx context.Context, to, title, meetURL, calLink string) error {
+	mailSvc, err := gmail.NewService(ctx)
 	if err != nil {
 		return err
 	}

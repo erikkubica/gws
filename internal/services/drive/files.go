@@ -24,12 +24,8 @@ func (s *Service) ListFiles(query string, max int64) ([]FileSummary, error) {
 		max = 10
 	}
 	req := s.client.Files.List().PageSize(max).
-		Fields("files(id, name, mimeType, size)").OrderBy("modifiedTime desc")
-	if query != "" {
-		req = req.Q(fmt.Sprintf("name contains '%s' and trashed = false", query))
-	} else {
-		req = req.Q("trashed = false")
-	}
+		Fields("files(id, name, mimeType, size)").OrderBy("modifiedTime desc").
+		Q(buildDriveQuery(query))
 
 	res, err := req.Do()
 	if err != nil {
@@ -48,11 +44,39 @@ func (s *Service) ListFiles(query string, max int64) ([]FileSummary, error) {
 	return files, nil
 }
 
+func buildDriveQuery(query string) string {
+	clean := strings.TrimSpace(query)
+	if clean == "" {
+		return "trashed = false"
+	}
+	escaped := strings.ReplaceAll(clean, "'", "\\'")
+	return fmt.Sprintf("name contains '%s' and trashed = false", escaped)
+}
+
+// MaxReadFileSize limits in-memory file reading to 10MB to avoid Out of Memory (OOM) crashes.
+const MaxReadFileSize int64 = 10 * 1024 * 1024
+
+func readLimitedStream(r io.Reader, maxBytes int64) (string, error) {
+	limited := io.LimitReader(r, maxBytes+1)
+	b, err := io.ReadAll(limited)
+	if err != nil {
+		return "", fmt.Errorf("read stream: %w", err)
+	}
+	if int64(len(b)) > maxBytes {
+		return "", fmt.Errorf("file content exceeds maximum limit of %d bytes", maxBytes)
+	}
+	return string(b), nil
+}
+
 // ReadFile exports or downloads a file content as UTF-8 string.
 func (s *Service) ReadFile(fileID string) (string, error) {
-	f, err := s.client.Files.Get(fileID).Fields("id, name, mimeType").Do()
+	f, err := s.client.Files.Get(fileID).Fields("id, name, mimeType, size").Do()
 	if err != nil {
 		return "", fmt.Errorf("inspect file metadata: %w", err)
+	}
+
+	if f.Size > MaxReadFileSize {
+		return "", fmt.Errorf("file size (%d bytes) exceeds maximum limit of %d bytes", f.Size, MaxReadFileSize)
 	}
 
 	if strings.Contains(f.MimeType, "google-apps.document") {
@@ -68,11 +92,7 @@ func (s *Service) ReadFile(fileID string) (string, error) {
 	}
 	defer res.Body.Close()
 
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", fmt.Errorf("read stream: %w", err)
-	}
-	return string(b), nil
+	return readLimitedStream(res.Body, MaxReadFileSize)
 }
 
 // exportFile exports a Google Workspace doc/sheet to plain text or csv.
@@ -83,11 +103,7 @@ func (s *Service) exportFile(fileID, exportMime string) (string, error) {
 	}
 	defer res.Body.Close()
 
-	b, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", fmt.Errorf("read export stream: %w", err)
-	}
-	return string(b), nil
+	return readLimitedStream(res.Body, MaxReadFileSize)
 }
 
 // UploadFile uploads a local file to Google Drive.
@@ -131,14 +147,30 @@ func (s *Service) DownloadFile(fileID, destPath string) error {
 	}
 	defer body.Close()
 
-	out, err := os.Create(destPath)
-	if err != nil {
-		return fmt.Errorf("create destination file: %w", err)
-	}
-	defer out.Close()
+	return writeStreamToFile(destPath, body)
+}
 
-	if _, err := io.Copy(out, body); err != nil {
-		return fmt.Errorf("write stream to disk: %w", err)
+func writeStreamToFile(destPath string, body io.Reader) error {
+	tmpPath := destPath + ".tmp"
+	out, err := os.Create(tmpPath)
+	if err != nil {
+		return fmt.Errorf("create temp destination file: %w", err)
+	}
+
+	_, copyErr := io.Copy(out, body)
+	closeErr := out.Close()
+	if copyErr != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("write stream to disk: %w", copyErr)
+	}
+	if closeErr != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("close temp destination file: %w", closeErr)
+	}
+
+	if err := os.Rename(tmpPath, destPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("rename temporary file: %w", err)
 	}
 	return nil
 }

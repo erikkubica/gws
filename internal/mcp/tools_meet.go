@@ -3,7 +3,6 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/erikkubica/gws/internal/services/calendar"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -31,19 +30,12 @@ func handleCreateMeet(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		title, _ := req.RequireString("title")
-		start := req.GetString("start", "")
-		end := req.GetString("end", "")
-		rawAtt := req.GetString("attendees", "")
-		var att []string
-		if rawAtt != "" {
-			for _, a := range strings.Split(rawAtt, ",") {
-				if s := strings.TrimSpace(a); s != "" {
-					att = append(att, s)
-				}
-			}
+		title, err := req.RequireString("title")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-		ev, meetURL, err := svc.CreateQuickMeet(title, start, end, att)
+		att := parseAttendeesList(req.GetString("attendees", ""))
+		ev, meetURL, err := svc.CreateQuickMeet(title, req.GetString("start", ""), req.GetString("end", ""), att)
 		if err != nil {
 			return mcp.NewToolResultError("create meet error: " + err.Error()), nil
 		}

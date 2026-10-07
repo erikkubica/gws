@@ -128,20 +128,44 @@ func handleSendMessage(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		to, _ := req.RequireString("to")
-		subj, _ := req.RequireString("subject")
-		body, _ := req.RequireString("body")
-		var atts []string
-		if a := req.GetString("attachment", ""); a != "" {
-			atts = append(atts, a)
+		opts, err := parseEmailOptions(req)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-		opts := gmail.EmailOptions{To: to, Subject: subj, Body: body, Attachments: atts}
 		res, err := svc.SendMessage(opts)
 		if err != nil {
 			return mcp.NewToolResultError("send failed: " + err.Error()), nil
 		}
 		return mcp.NewToolResultText("Message sent successfully. ID: " + res.Id), nil
 	}
+}
+
+func parseEmailOptions(req mcp.CallToolRequest) (gmail.EmailOptions, error) {
+	to, err := req.RequireString("to")
+	if err != nil {
+		return gmail.EmailOptions{}, err
+	}
+	subj, err := req.RequireString("subject")
+	if err != nil {
+		return gmail.EmailOptions{}, err
+	}
+	body, err := req.RequireString("body")
+	if err != nil {
+		return gmail.EmailOptions{}, err
+	}
+	return gmail.EmailOptions{
+		To:          to,
+		Subject:     subj,
+		Body:        body,
+		Attachments: parseAttachmentOption(req),
+	}, nil
+}
+
+func parseAttachmentOption(req mcp.CallToolRequest) []string {
+	if a := req.GetString("attachment", ""); a != "" {
+		return []string{a}
+	}
+	return nil
 }
 
 func handleReplyMessage(ctx context.Context) server.ToolHandlerFunc {
@@ -154,12 +178,11 @@ func handleReplyMessage(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError(err.Error()), nil
 		}
-		body, _ := req.RequireString("body")
-		var atts []string
-		if a := req.GetString("attachment", ""); a != "" {
-			atts = append(atts, a)
+		body, err := req.RequireString("body")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-		res, err := svc.ReplyMessage(msgID, body, atts)
+		res, err := svc.ReplyMessage(msgID, body, parseAttachmentOption(req))
 		if err != nil {
 			return mcp.NewToolResultError("reply failed: " + err.Error()), nil
 		}
@@ -173,14 +196,10 @@ func handleCreateDraft(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		to, _ := req.RequireString("to")
-		subj, _ := req.RequireString("subject")
-		body, _ := req.RequireString("body")
-		var atts []string
-		if a := req.GetString("attachment", ""); a != "" {
-			atts = append(atts, a)
+		opts, err := parseEmailOptions(req)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-		opts := gmail.EmailOptions{To: to, Subject: subj, Body: body, Attachments: atts}
 		draft, err := svc.CreateDraft(opts)
 		if err != nil {
 			return mcp.NewToolResultError("draft failed: " + err.Error()), nil
@@ -255,4 +274,3 @@ func handleDownloadAttachment(ctx context.Context) server.ToolHandlerFunc {
 		return mcp.NewToolResultText(fmt.Sprintf("Saved attachment '%s' (%d bytes) to %s", file.Filename, file.Size, dest)), nil
 	}
 }
-

@@ -113,19 +113,9 @@ func handleCreateEvent(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		title, _ := req.RequireString("title")
-		start, _ := req.RequireString("start")
-		end, _ := req.RequireString("end")
-		opts := calendar.EventOptions{
-			CalendarID:  req.GetString("calendar_id", "primary"),
-			Title:       title,
-			Description: req.GetString("description", ""),
-			Location:    req.GetString("location", ""),
-			Start:       start,
-			End:         end,
-			WithMeet:    req.GetBool("with_meet", false),
-			Attendees:   parseAttendeesList(req.GetString("attendees", "")),
-			SendUpdates: "all",
+		opts, err := parseEventInput(req)
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
 		ev, err := svc.CreateEventWithOptions(opts)
 		if err != nil {
@@ -136,6 +126,36 @@ func handleCreateEvent(ctx context.Context) server.ToolHandlerFunc {
 			msg += "\nGoogle Meet: " + ev.HangoutLink
 		}
 		return mcp.NewToolResultText(msg), nil
+	}
+}
+
+func parseEventInput(req mcp.CallToolRequest) (calendar.EventOptions, error) {
+	title, err := req.RequireString("title")
+	if err != nil {
+		return calendar.EventOptions{}, err
+	}
+	start, err := req.RequireString("start")
+	if err != nil {
+		return calendar.EventOptions{}, err
+	}
+	end, err := req.RequireString("end")
+	if err != nil {
+		return calendar.EventOptions{}, err
+	}
+	return buildCalendarEventOptions(req, title, start, end), nil
+}
+
+func buildCalendarEventOptions(req mcp.CallToolRequest, title, start, end string) calendar.EventOptions {
+	return calendar.EventOptions{
+		CalendarID:  req.GetString("calendar_id", "primary"),
+		Title:       title,
+		Description: req.GetString("description", ""),
+		Location:    req.GetString("location", ""),
+		Start:       start,
+		End:         end,
+		WithMeet:    req.GetBool("with_meet", false),
+		Attendees:   parseAttendeesList(req.GetString("attendees", "")),
+		SendUpdates: "all",
 	}
 }
 
@@ -158,8 +178,14 @@ func handleRespondEvent(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		id, _ := req.RequireString("event_id")
-		status, _ := req.RequireString("response")
+		id, err := req.RequireString("event_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		status, err := req.RequireString("response")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		calID := req.GetString("calendar_id", "primary")
 		ev, err := svc.RespondToEvent(calID, id, status, "all")
 		if err != nil {

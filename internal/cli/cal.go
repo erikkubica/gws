@@ -47,7 +47,7 @@ var calListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "List upcoming events (aliases: ls)",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := calendar.NewService(context.Background())
+		svc, err := calendar.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -77,7 +77,7 @@ var calAddCmd = &cobra.Command{
 	Short:   "Quick-add an event with natural language (aliases: quick-add)",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := calendar.NewService(context.Background())
+		svc, err := calendar.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -97,7 +97,7 @@ var calCreateCmd = &cobra.Command{
 		if calTitle == "" || calStart == "" || calEnd == "" {
 			return fmt.Errorf("flags --title, --start, and --end are all required")
 		}
-		svc, err := calendar.NewService(context.Background())
+		svc, err := calendar.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -128,9 +128,9 @@ var calDeleteCmd = &cobra.Command{
 	Use:     "delete [event_id]",
 	Aliases: []string{"rm"},
 	Short:   "Delete a calendar event by ID (aliases: rm)",
-	Args:  cobra.ExactArgs(1),
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := calendar.NewService(context.Background())
+		svc, err := calendar.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -142,8 +142,8 @@ var calDeleteCmd = &cobra.Command{
 	},
 }
 
-func runCalRSVP(eventID, status string) error {
-	svc, err := calendar.NewService(context.Background())
+func runCalRSVP(ctx context.Context, eventID, status string) error {
+	svc, err := calendar.NewService(ctx)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ var calAcceptCmd = &cobra.Command{
 	Short: "Accept a calendar invitation",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runCalRSVP(args[0], "accepted")
+		return runCalRSVP(cmd.Context(), args[0], "accepted")
 	},
 }
 
@@ -169,7 +169,7 @@ var calDeclineCmd = &cobra.Command{
 	Short: "Decline a calendar invitation",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runCalRSVP(args[0], "declined")
+		return runCalRSVP(cmd.Context(), args[0], "declined")
 	},
 }
 
@@ -178,7 +178,7 @@ var calMaybeCmd = &cobra.Command{
 	Short: "Tentatively accept a calendar invitation",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runCalRSVP(args[0], "tentative")
+		return runCalRSVP(cmd.Context(), args[0], "tentative")
 	},
 }
 
@@ -187,7 +187,7 @@ var calRespondCmd = &cobra.Command{
 	Short: "Respond to an event invitation (accepted, declined, tentative)",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runCalRSVP(args[0], args[1])
+		return runCalRSVP(cmd.Context(), args[0], args[1])
 	},
 }
 

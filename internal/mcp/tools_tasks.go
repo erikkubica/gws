@@ -106,18 +106,14 @@ func handleAddTask(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		title, _ := req.RequireString("title")
-		notes := req.GetString("notes", "")
-		link := req.GetString("link", "")
-		if link != "" {
-			if notes != "" {
-				notes += "\n"
-			}
-			notes += "Attachment: " + link
+		title, err := req.RequireString("title")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
 		}
-		due := req.GetString("due", "")
+		notes := buildTaskNotes(req)
 		listID := req.GetString("list_id", "@default")
 		parentID := req.GetString("parent_id", "")
+		due := req.GetString("due", "")
 
 		t, err := svc.CreateTask(listID, parentID, title, notes, due)
 		if err != nil {
@@ -127,13 +123,27 @@ func handleAddTask(ctx context.Context) server.ToolHandlerFunc {
 	}
 }
 
+func buildTaskNotes(req mcp.CallToolRequest) string {
+	notes := req.GetString("notes", "")
+	if link := req.GetString("link", ""); link != "" {
+		if notes != "" {
+			notes += "\n"
+		}
+		notes += "Attachment: " + link
+	}
+	return notes
+}
+
 func handleDoneTask(ctx context.Context) server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		svc, err := tasks.NewService(withAccountContext(c, req))
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		taskID, _ := req.RequireString("task_id")
+		taskID, err := req.RequireString("task_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		listID := req.GetString("list_id", "@default")
 
 		t, err := svc.CompleteTask(listID, taskID)
@@ -150,7 +160,10 @@ func handleDeleteTask(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		taskID, _ := req.RequireString("task_id")
+		taskID, err := req.RequireString("task_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		listID := req.GetString("list_id", "@default")
 
 		if err := svc.DeleteTask(listID, taskID); err != nil {
@@ -181,7 +194,10 @@ func handleCreateTaskList(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		title, _ := req.RequireString("title")
+		title, err := req.RequireString("title")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		tl, err := svc.CreateTaskList(title)
 		if err != nil {
 			return mcp.NewToolResultError("create tasklist error: " + err.Error()), nil
@@ -196,7 +212,10 @@ func handleDeleteTaskList(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		listID, _ := req.RequireString("list_id")
+		listID, err := req.RequireString("list_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		if err := svc.DeleteTaskList(listID); err != nil {
 			return mcp.NewToolResultError("delete tasklist error: " + err.Error()), nil
 		}

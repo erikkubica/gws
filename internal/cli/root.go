@@ -5,11 +5,12 @@ import (
 	"os"
 
 	"github.com/erikkubica/gws/internal/auth"
+	"github.com/erikkubica/gws/internal/version"
 	"github.com/spf13/cobra"
 )
 
-// Version is the build version of gws (injected via ldflags at build time).
-var Version = "1.1.1"
+// Version is the build version of gws.
+var Version = version.Version
 
 var accountFlag string
 

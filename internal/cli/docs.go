@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/erikkubica/gws/internal/services/docs"
@@ -18,7 +17,7 @@ var docsCreateCmd = &cobra.Command{
 	Short: "Create a new Google Doc",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := docs.NewService(context.Background())
+		svc, err := docs.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -37,7 +36,7 @@ var docsAppendCmd = &cobra.Command{
 	Short: "Append text to an existing Google Doc",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := docs.NewService(context.Background())
+		svc, err := docs.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -54,7 +53,7 @@ var docsReadCmd = &cobra.Command{
 	Short: "Read full text content of a Google Doc",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := docs.NewService(context.Background())
+		svc, err := docs.NewService(cmd.Context())
 		if err != nil {
 			return err
 		}

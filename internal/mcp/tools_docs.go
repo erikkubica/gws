@@ -65,8 +65,14 @@ func handleAppendDoc(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		docID, _ := req.RequireString("doc_id")
-		text, _ := req.RequireString("text")
+		docID, err := req.RequireString("doc_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		text, err := req.RequireString("text")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		if err := svc.AppendText(docID, text); err != nil {
 			return mcp.NewToolResultError("append text error: " + err.Error()), nil
 		}
@@ -80,7 +86,10 @@ func handleReadDoc(ctx context.Context) server.ToolHandlerFunc {
 		if err != nil {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
-		docID, _ := req.RequireString("doc_id")
+		docID, err := req.RequireString("doc_id")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
 		text, err := svc.GetDocumentText(docID)
 		if err != nil {
 			return mcp.NewToolResultError("read doc error: " + err.Error()), nil

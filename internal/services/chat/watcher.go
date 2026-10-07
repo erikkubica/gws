@@ -18,12 +18,15 @@ type spaceBuffer struct {
 	messages        []*MessageInfo
 }
 
+const maxSeenIDs = 5000
+
 // BurstBuffer manages isolated debounce buffers per Google Chat space.
 type BurstBuffer struct {
 	mu               sync.Mutex
 	debounceDuration time.Duration
 	buffers          map[string]*spaceBuffer
 	seenIDs          map[string]bool
+	seenOrder        []string
 }
 
 // NewBurstBuffer creates a new buffer for per-space message debouncing.
@@ -32,6 +35,20 @@ func NewBurstBuffer(debounce time.Duration) *BurstBuffer {
 		debounceDuration: debounce,
 		buffers:          make(map[string]*spaceBuffer),
 		seenIDs:          make(map[string]bool),
+		seenOrder:        make([]string, 0, maxSeenIDs),
+	}
+}
+
+func (b *BurstBuffer) recordSeen(id string) {
+	b.seenIDs[id] = true
+	b.seenOrder = append(b.seenOrder, id)
+	if len(b.seenOrder) > maxSeenIDs {
+		pruneCount := len(b.seenOrder) / 2
+		for i := 0; i < pruneCount; i++ {
+			delete(b.seenIDs, b.seenOrder[i])
+		}
+		copy(b.seenOrder, b.seenOrder[pruneCount:])
+		b.seenOrder = b.seenOrder[:len(b.seenOrder)-pruneCount]
 	}
 }
 
@@ -40,8 +57,8 @@ func (b *BurstBuffer) SeedIDs(msgs []*MessageInfo) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	for _, m := range msgs {
-		if m != nil && m.Name != "" {
-			b.seenIDs[m.Name] = true
+		if m != nil && m.Name != "" && !b.seenIDs[m.Name] {
+			b.recordSeen(m.Name)
 		}
 	}
 }
@@ -56,7 +73,7 @@ func (b *BurstBuffer) Add(spaceID string, msg *MessageInfo, arrivalTime time.Tim
 	if b.seenIDs[msg.Name] {
 		return false
 	}
-	b.seenIDs[msg.Name] = true
+	b.recordSeen(msg.Name)
 
 	targetSpace := spaceID
 	if targetSpace == "" || targetSpace == "all" {
