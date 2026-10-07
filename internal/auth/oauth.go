@@ -151,8 +151,11 @@ func loadLegacyToken() (*oauth2.Token, error) {
 
 // SaveToken persists the OAuth2 token into the active account or legacy token.json.
 func SaveToken(token *oauth2.Token) error {
-	act, err := GetActiveAccount()
-	if err == nil && act != "" {
+	act := SelectedAccount
+	if act == "" {
+		act, _ = GetActiveAccount()
+	}
+	if act != "" {
 		return SaveAccountToken(act, token)
 	}
 	tokPath, err := TokenPath()

@@ -99,7 +99,10 @@ func printUserAuthStatus() {
 		fmt.Println("User Account:    Not authenticated (run 'gws auth login')")
 		return
 	}
-	active, _ := auth.GetActiveAccount()
+	active := auth.SelectedAccount
+	if active == "" {
+		active, _ = auth.GetActiveAccount()
+	}
 	fmt.Printf("Active Account:  %s\n", active)
 	fmt.Printf("Total Accounts:  %d authenticated (run 'gws auth list' to inspect)\n", len(accounts))
 }
