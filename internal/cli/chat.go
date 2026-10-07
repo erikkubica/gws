@@ -167,9 +167,24 @@ func formatReactionsString(reactions []chat.ReactionSummary) string {
 	}
 	var parts []string
 	for _, r := range reactions {
-		parts = append(parts, fmt.Sprintf("%s %d", r.Emoji, r.Count))
+		parts = append(parts, formatSingleReaction(r))
 	}
 	return "  Reactions: " + strings.Join(parts, "  ") + "\n"
+}
+
+func formatSingleReaction(r chat.ReactionSummary) string {
+	if len(r.Users) == 0 {
+		return fmt.Sprintf("%s %d", r.Emoji, r.Count)
+	}
+	var names []string
+	for _, u := range r.Users {
+		name := u.DisplayName
+		if name == "" {
+			name = u.Name
+		}
+		names = append(names, name)
+	}
+	return fmt.Sprintf("%s %d (%s)", r.Emoji, r.Count, strings.Join(names, ", "))
 }
 
 func init() {

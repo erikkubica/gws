@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"google.golang.org/api/chat/v1"
 )
@@ -17,10 +18,17 @@ type MessageOptions struct {
 	Attachment string
 }
 
-// ReactionSummary represents aggregated emoji reaction counts on a message.
+// ReactingUser represents the identity of a user who reacted to a message.
+type ReactingUser struct {
+	DisplayName string `json:"display_name,omitempty"`
+	Name        string `json:"name,omitempty"`
+}
+
+// ReactionSummary represents aggregated emoji reaction counts and the users who reacted on a message.
 type ReactionSummary struct {
-	Emoji string `json:"emoji"`
-	Count int64  `json:"count"`
+	Emoji string         `json:"emoji"`
+	Count int64          `json:"count"`
+	Users []ReactingUser `json:"users,omitempty"`
 }
 
 // AttachmentInfo represents metadata for a Chat message attachment.
@@ -189,5 +197,38 @@ func (s *Service) ListMessagesWithOrder(spaceName string, pageSize int64, order 
 	for _, m := range res.Messages {
 		msgs = append(msgs, formatMessageInfo(m))
 	}
+	s.populateReactionUsers(msgs)
 	return msgs, nil
+}
+
+func (s *Service) populateReactionUsers(msgs []*MessageInfo) {
+	var wg sync.WaitGroup
+	for _, m := range msgs {
+		if len(m.Reactions) == 0 {
+			continue
+		}
+		wg.Add(1)
+		go func(msg *MessageInfo) {
+			defer wg.Done()
+			s.fetchAndAttachUsers(msg)
+		}(m)
+	}
+	wg.Wait()
+}
+
+func (s *Service) fetchAndAttachUsers(msg *MessageInfo) {
+	userReactions, err := s.ListReactions(msg.Name)
+	if err != nil {
+		return
+	}
+	for i := range msg.Reactions {
+		for _, ur := range userReactions {
+			if ur.Emoji == msg.Reactions[i].Emoji {
+				msg.Reactions[i].Users = append(msg.Reactions[i].Users, ReactingUser{
+					DisplayName: ur.DisplayName,
+					Name:        ur.UserName,
+				})
+			}
+		}
+	}
 }
