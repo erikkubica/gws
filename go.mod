@@ -1,4 +1,4 @@
-module github.com/erikkubica/gmcp
+module github.com/erikkubica/gws
 
 go 1.26.0
 

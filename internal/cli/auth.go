@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/erikkubica/gmcp/internal/auth"
+	"github.com/erikkubica/gws/internal/auth"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +33,7 @@ var statusCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		tok, err := auth.LoadToken()
 		if err != nil {
-			fmt.Println("Not authenticated. Run 'gmcp auth login' to authenticate.")
+			fmt.Println("Not authenticated. Run 'gws auth login' to authenticate.")
 			return nil
 		}
 		fmt.Println("Authenticated.")
@@ -60,4 +60,5 @@ func init() {
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(statusCmd)
 	authCmd.AddCommand(logoutCmd)
+	authCmd.AddCommand(gcpImportCmd)
 }

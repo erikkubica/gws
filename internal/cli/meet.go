@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/services/calendar"
-	"github.com/erikkubica/gmcp/internal/services/gmail"
+	"github.com/erikkubica/gws/internal/services/calendar"
+	"github.com/erikkubica/gws/internal/services/gmail"
 	"github.com/spf13/cobra"
 	googlecal "google.golang.org/api/calendar/v3"
 )

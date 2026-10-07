@@ -7,9 +7,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "gmcp",
+	Use:   "gws",
 	Short: "Unified Google Workspace CLI & Model Context Protocol (MCP) Server",
-	Long: `gmcp is an all-in-one developer tool and MCP server for Google Workspace.
+	Long: `gws is an all-in-one developer tool and MCP server for Google Workspace.
 It provides instant terminal access and AI agent integration for Gmail, Calendar, Drive, and YouTube.`,
 }
 
@@ -20,6 +20,8 @@ func Execute() error {
 
 func init() {
 	rootCmd.AddCommand(authCmd)
+	rootCmd.AddCommand(gcpCmd)
+	rootCmd.AddCommand(mcpCmd)
 	rootCmd.AddCommand(serveCmd)
 	rootCmd.AddCommand(mailCmd)
 	rootCmd.AddCommand(calCmd)

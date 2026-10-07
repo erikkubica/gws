@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/services/tasks"
+	"github.com/erikkubica/gws/internal/services/tasks"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

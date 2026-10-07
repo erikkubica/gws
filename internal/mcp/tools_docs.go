@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/services/docs"
+	"github.com/erikkubica/gws/internal/services/docs"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

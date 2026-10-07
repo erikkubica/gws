@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/erikkubica/gmcp/internal/cli"
+	"github.com/erikkubica/gws/internal/cli"
 )
 
 func main() {

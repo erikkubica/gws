@@ -52,7 +52,7 @@ func LoginFlow(ctx context.Context) error {
 		return err
 	}
 
-	authURL := cfg.AuthCodeURL("state-gmcp", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
+	authURL := cfg.AuthCodeURL("state-gws", oauth2.AccessTypeOffline, oauth2.ApprovalForce)
 	fmt.Printf("Opening browser for Google Authentication...\nIf browser does not open, visit:\n%s\n\n", authURL)
 	_ = openBrowser(authURL)
 

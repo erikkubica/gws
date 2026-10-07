@@ -1,6 +1,6 @@
-# gmcp — Unified Google Workspace CLI & MCP Server
+# gws — Unified Google Workspace CLI & MCP Server
 
-**gmcp** is an all-in-one developer CLI and Model Context Protocol (MCP) server written in Go. It connects AI assistants (Claude Desktop, Cursor, Antigravity, Zed) and terminal workflows directly to Google Workspace services.
+**gws** is an all-in-one developer CLI and Model Context Protocol (MCP) server written in Go. It connects AI assistants (Claude Desktop, Cursor, Antigravity, Zed) and terminal workflows directly to Google Workspace services.
 
 ---
 
@@ -8,7 +8,7 @@
 
 - **📬 Gmail:** Search, read full threads, send emails with attachments (`--attach`), reply to threads (`reply`), scheduled send (`--delay`, `--at`), and draft management (`draft`, `drafts`, `send-draft`, `delete-draft`).
 - **📅 Google Calendar:** List upcoming events, natural language additions (`add`), structured creation with exact timestamps (`create`), attendee invitations, and complete RSVP response handling (`accept`, `decline`, `maybe`, `respond`).
-- **📹 Google Meet:** Instantly provision persistent video conference rooms (`gmcp meet create`), send invitations directly via email (`gmcp meet send`), or attach to calendar events and emails with `--meet`.
+- **📹 Google Meet:** Instantly provision persistent video conference rooms (`gws meet create`), send invitations directly via email (`gws meet send`), or attach to calendar events and emails with `--meet`.
 - **📁 Google Drive:** Search files, read file contents, download files, upload local files, create files, permanently delete files, and auto-export Google Docs (to plain text/PDF) and Google Sheets (to CSV).
 - **📋 Google Tasks:** Full lifecycle for task lists (`lists`, `create-list`, `delete-list`), todos with notes and due dates, hierarchical subtasks (`--parent`), attachment links (`--link`), and completion marking (`done`).
 - **📊 Google Sheets:** Create spreadsheets (`create`), add sheet tabs (`add-sheet`), read cell ranges (`read`), append rows (`append`), and update cells (`update`).
@@ -21,32 +21,69 @@
 
 ## 🛠️ Installation
 
+### Quick Install (Binary + Editor Plugins)
+
+Run the included install script to build the binary to `~/.local/bin/gws` and install all editor plugins (or specify `--editor antigravity`):
+
 ```bash
-# Clone and build
-git clone https://github.com/erikkubica/gmcp.git
-cd gmcp
-go build -o ~/.local/bin/gmcp ./cmd/gmcp
+git clone https://github.com/erikkubica/gws.git
+cd gws
+./install.sh
+```
+
+Or install a specific editor plugin directly:
+```bash
+./plugin/antigravity/install.sh
+```
+
+Or using `make`:
+```bash
+make install
+```
+
+### Manual Build
+
+```bash
+go build -o ~/.local/bin/gws ./cmd/gws
 ```
 
 Or install via `go install`:
 ```bash
-go install github.com/erikkubica/gmcp/cmd/gmcp@latest
+go install github.com/erikkubica/gws/cmd/gws@latest
 ```
 
 ---
 
-## 🔑 Authentication
+## 🔑 Google Cloud Setup & Authentication
 
-1. Place your Google Cloud OAuth `credentials.json` at:
-   `~/.config/gmcp/credentials.json`
-2. Run the interactive browser login:
-   ```bash
-   gmcp auth login
-   ```
-3. Check authentication status anytime:
-   ```bash
-   gmcp auth status
-   ```
+### 1. Configure GCP OAuth Application (`gws gcp`)
+
+Import the OAuth Client ID JSON downloaded from Google Cloud Console:
+```bash
+gws gcp import ./credentials.json
+```
+
+Or configure the credentials directly without needing a file (ideal for VPS/remote setups):
+```bash
+gws gcp set "<client_id>" "<client_secret>"
+```
+
+Verify your GCP application configuration:
+```bash
+gws gcp status
+```
+
+### 2. User Authentication (`gws auth`)
+
+Run the interactive browser login:
+```bash
+gws auth login
+```
+
+Check authentication status anytime:
+```bash
+gws auth status
+```
 
 ---
 
@@ -55,48 +92,48 @@ go install github.com/erikkubica/gmcp/cmd/gmcp@latest
 ### Gmail
 ```bash
 # List recent emails (plain text or JSON)
-gmcp mail list --max 5
-gmcp mail list --max 5 --json | jq .
+gws mail list --max 5
+gws mail list --max 5 --json | jq .
 
 # Search specific emails
-gmcp mail list --query "from:recruiter is:unread"
+gws mail list --query "from:recruiter is:unread"
 
 # Send email with attachment and auto-generated Google Meet link
-gmcp mail send --to "client@example.com" \
+gws mail send --to "client@example.com" \
   --subject "Project Kickoff" \
   --body "Looking forward to speaking." \
   --meet \
   --attach ./contract.pdf
 
 # Schedule send
-gmcp mail send --to "client@example.com" --subject "Update" --body "Hello" --delay 10m
+gws mail send --to "client@example.com" --subject "Update" --body "Hello" --delay 10m
 
 # Reply to an existing thread
-gmcp mail reply <message_id> --body "Thanks, let's meet tomorrow." --meet
+gws mail reply <message_id> --body "Thanks, let's meet tomorrow." --meet
 
 # Manage drafts
-gmcp mail draft --to "lead@company.com" --subject "Proposal" --body "Draft proposal content."
-gmcp mail drafts
-gmcp mail send-draft <draft_id>
-gmcp mail delete-draft <draft_id>
+gws mail draft --to "lead@company.com" --subject "Proposal" --body "Draft proposal content."
+gws mail drafts
+gws mail send-draft <draft_id>
+gws mail delete-draft <draft_id>
 ```
 
 ### Google Meet & Calendar
 ```bash
 # Instant Google Meet generation
-gmcp meet create "Team Sync" --start "2026-10-06T15:00:00+07:00" --end "2026-10-06T15:30:00+07:00"
+gws meet create "Team Sync" --start "2026-10-06T15:00:00+07:00" --end "2026-10-06T15:30:00+07:00"
 
 # Send Meet invitation via email
-gmcp meet send "1-on-1 Catchup" --to "partner@example.com"
+gws meet send "1-on-1 Catchup" --to "partner@example.com"
 
 # View upcoming events (shows Google Meet links and RSVP status)
-gmcp cal list --max 10 --json
+gws cal list --max 10 --json
 
 # Natural language event creation
-gmcp cal add "Lunch with Alex tomorrow at 1pm"
+gws cal add "Lunch with Alex tomorrow at 1pm"
 
 # Structured event with Google Meet and attendee invitations
-gmcp cal create \
+gws cal create \
   --title "Client Architecture Review" \
   --start "2026-10-08T10:00:00+07:00" \
   --end "2026-10-08T11:00:00+07:00" \
@@ -104,93 +141,127 @@ gmcp cal create \
   --attendees "lead@client.com,dev@client.com"
 
 # RSVP to event invitations
-gmcp cal accept <event_id>
-gmcp cal decline <event_id>
-gmcp cal maybe <event_id>
+gws cal accept <event_id>
+gws cal decline <event_id>
+gws cal maybe <event_id>
 
 # Delete event
-gmcp cal delete <event_id>
+gws cal delete <event_id>
 ```
 
 ### Google Tasks
 ```bash
 # List and manage task lists
-gmcp tasks lists
-gmcp tasks create-list "Q4 Roadmap"
-gmcp tasks delete-list <list_id>
+gws tasks lists
+gws tasks create-list "Q4 Roadmap"
+gws tasks delete-list <list_id>
 
 # List tasks (shows indented subtasks tree)
-gmcp tasks list --list <list_id> --json
+gws tasks list --list <list_id> --json
 
 # Add task with notes, due date, and attachment link
-gmcp tasks add "Review Sprint Backlog" \
+gws tasks add "Review Sprint Backlog" \
   --notes "Prioritize auth features" \
   --due "2026-10-10T00:00:00.000Z" \
   --link "https://docs.google.com/spreadsheets/d/..."
 
 # Add nested subtask
-gmcp tasks add "Verify OAuth refresh token" --parent <parent_task_id>
+gws tasks add "Verify OAuth refresh token" --parent <parent_task_id>
 
 # Mark task as completed
-gmcp tasks done <task_id>
+gws tasks done <task_id>
 ```
 
 ### Google Sheets & Docs
 ```bash
 # Create spreadsheet & add sheets
-gmcp sheets create "Project Budget"
-gmcp sheets add-sheet <spreadsheet_id> "Expenses"
+gws sheets create "Project Budget"
+gws sheets add-sheet <spreadsheet_id> "Expenses"
 
 # Append row & update cells
-gmcp sheets append <spreadsheet_id> "Expenses!A1" "2026-10-06" "Server Hosting" "45 EUR"
-gmcp sheets update <spreadsheet_id> "Expenses!C1" "50 EUR"
+gws sheets append <spreadsheet_id> "Expenses!A1" "2026-10-06" "Server Hosting" "45 EUR"
+gws sheets update <spreadsheet_id> "Expenses!C1" "50 EUR"
 
 # Read cell range
-gmcp sheets read <spreadsheet_id> "Expenses!A1:D10" --json
+gws sheets read <spreadsheet_id> "Expenses!A1:D10" --json
 
 # Create & read Google Docs
-gmcp docs create "Meeting Notes"
-gmcp docs read <doc_id>
-gmcp docs append <doc_id> "Key decisions made during sprint kickoff.\n"
+gws docs create "Meeting Notes"
+gws docs read <doc_id>
+gws docs append <doc_id> "Key decisions made during sprint kickoff.\n"
 ```
 
 ### Google Drive
 ```bash
 # List / search Drive files
-gmcp drive list --query "report" --json
+gws drive list --query "report" --json
 
 # Read & export Google Docs / Sheets / text files
-gmcp drive read <file_id>
+gws drive read <file_id>
 
 # Download & upload files
-gmcp drive download <file_id> ./downloaded_report.pdf
-gmcp drive upload ./document.pdf --name "Final_Spec.pdf"
+gws drive download <file_id> ./downloaded_report.pdf
+gws drive upload ./document.pdf --name "Final_Spec.pdf"
 
 # Delete file
-gmcp drive delete <file_id>
+gws drive delete <file_id>
 ```
 
 ---
 
 ## 🤖 Model Context Protocol (MCP) Server
 
-Run `gmcp` as a high-performance stdio MCP server for Claude Desktop, Cursor, Zed, or Antigravity:
+### Local Mode (Stdio)
+
+Run `gws` as a high-performance stdio MCP server for Claude Desktop, Cursor, Zed, or Antigravity:
 
 ```bash
-gmcp serve
+gws mcp server
+# or legacy alias:
+gws serve
 ```
 
-### Claude Desktop Configuration (`claude_desktop_config.json`)
+#### Editor Configuration (Claude / Antigravity / Cursor)
 ```json
 {
   "mcpServers": {
-    "gmcp": {
-      "command": "gmcp",
-      "args": ["serve"]
+    "gws": {
+      "command": "gws",
+      "args": ["mcp", "server"]
     }
   }
 }
 ```
+
+### Remote / VPS Mode (HTTP + SSE with Bearer Token)
+
+To run `gws` on a remote VPS and access it securely from your local editor:
+
+1. **Generate a secure 256-bit MCP secret token on the VPS**:
+   ```bash
+   gws mcp token
+   ```
+   *(Stored in `~/.config/gws/mcp_token` with `0600` permissions).*
+
+2. **Start the SSE server**:
+   ```bash
+   gws mcp server --port 8080 --host 0.0.0.0
+   ```
+   *Requests are automatically authenticated via constant-time Bearer token comparison.*
+
+3. **Configure your local editor**:
+   ```json
+   {
+     "mcpServers": {
+       "gws-remote": {
+         "serverUrl": "https://vps.example.com/sse",
+         "headers": {
+           "Authorization": "Bearer gws_mcp_your_secret_token_here"
+         }
+       }
+     }
+   }
+   ```
 
 ### Available MCP Tools (28 Tools)
 

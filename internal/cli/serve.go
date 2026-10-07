@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/mcp"
+	"github.com/erikkubica/gws/internal/mcp"
 	"github.com/spf13/cobra"
 )
 

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/services/youtube"
+	"github.com/erikkubica/gws/internal/services/youtube"
 	"github.com/spf13/cobra"
 )
 

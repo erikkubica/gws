@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/auth"
+	"github.com/erikkubica/gws/internal/auth"
 	"google.golang.org/api/gmail/v1"
 	"google.golang.org/api/option"
 )

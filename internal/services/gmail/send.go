@@ -32,7 +32,7 @@ func composeRaw(to, subject, body string) string {
 // composeMIME formats a MIME message (with multipart if attachments exist).
 func composeMIME(opts EmailOptions) (string, error) {
 	buf := new(bytes.Buffer)
-	boundary := "gmcp_boundary_part"
+	boundary := "gws_boundary_part"
 	writeHeaders(buf, opts, boundary)
 
 	fmt.Fprintf(buf, "--%s\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\n\r\n%s\r\n", boundary, opts.Body)

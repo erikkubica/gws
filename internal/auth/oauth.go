@@ -84,7 +84,7 @@ func GetClient(ctx context.Context) (*http.Client, error) {
 	}
 	tok, err := LoadToken()
 	if err != nil {
-		return nil, fmt.Errorf("no active session found: please run 'gmcp auth login' first: %w", err)
+		return nil, fmt.Errorf("no active session found: please run 'gws auth login' first: %w", err)
 	}
 	return cfg.Client(ctx, tok), nil
 }

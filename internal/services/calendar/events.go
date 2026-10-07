@@ -133,7 +133,7 @@ func buildCalendarEvent(opts EventOptions) *calendar.Event {
 	if opts.WithMeet {
 		event.ConferenceData = &calendar.ConferenceData{
 			CreateRequest: &calendar.CreateConferenceRequest{
-				RequestId: fmt.Sprintf("gmcp-meet-%d", time.Now().UnixNano()),
+				RequestId: fmt.Sprintf("gws-meet-%d", time.Now().UnixNano()),
 				ConferenceSolutionKey: &calendar.ConferenceSolutionKey{
 					Type: "hangoutsMeet",
 				},

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/erikkubica/gmcp/internal/services/calendar"
+	"github.com/erikkubica/gws/internal/services/calendar"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

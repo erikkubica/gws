@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/services/sheets"
+	"github.com/erikkubica/gws/internal/services/sheets"
 	"github.com/spf13/cobra"
 )
 

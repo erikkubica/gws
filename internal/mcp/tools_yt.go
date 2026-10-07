@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/erikkubica/gmcp/internal/services/youtube"
+	"github.com/erikkubica/gws/internal/services/youtube"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )

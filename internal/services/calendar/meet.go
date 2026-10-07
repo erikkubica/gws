@@ -16,7 +16,7 @@ func (s *Service) CreateQuickMeet(title, startISO, endISO string, attendees []st
 	opts := EventOptions{
 		CalendarID:  "primary",
 		Title:       title,
-		Description: "Created via gmcp Google Meet",
+		Description: "Created via gws Google Meet",
 		Start:       startISO,
 		End:         endISO,
 		WithMeet:    true,

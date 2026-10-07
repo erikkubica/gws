@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/erikkubica/gmcp/internal/auth"
+	"github.com/erikkubica/gws/internal/auth"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
 )
