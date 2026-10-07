@@ -78,27 +78,34 @@ var chatSendCmd = &cobra.Command{
 }
 
 var chatListCmd = &cobra.Command{
-	Use:   "list [space_id]",
-	Short: "List recent messages from a Google Chat space",
-	Args:  cobra.ExactArgs(1),
+	Use:     "list [space_id|spaces]",
+	Aliases: []string{"messages", "msgs"},
+	Short:   "List Google Chat spaces, or messages from a space",
+	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		svc, err := chat.NewService(context.Background())
-		if err != nil {
-			return err
+		if len(args) == 0 || args[0] == "spaces" {
+			return chatSpacesCmd.RunE(cmd, args)
 		}
-		space := args[0]
-		msgs, err := svc.ListMessages(space, chatMax)
-		if err != nil {
-			return err
-		}
-		if chatJSON {
-			b, _ := json.MarshalIndent(msgs, "", "  ")
-			fmt.Println(string(b))
-			return nil
-		}
-		printMessagesTable(msgs)
-		return nil
+		return runListMessages(args[0])
 	},
+}
+
+func runListMessages(space string) error {
+	svc, err := chat.NewService(context.Background())
+	if err != nil {
+		return err
+	}
+	msgs, err := svc.ListMessages(space, chatMax)
+	if err != nil {
+		return err
+	}
+	if chatJSON {
+		b, _ := json.MarshalIndent(msgs, "", "  ")
+		fmt.Println(string(b))
+		return nil
+	}
+	printMessagesTable(msgs)
+	return nil
 }
 
 func printMessagesTable(msgs []*chat.MessageInfo) {
