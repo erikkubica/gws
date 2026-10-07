@@ -57,7 +57,50 @@ go install github.com/erikkubica/gws/cmd/gws@latest
 
 ## 🔑 Google Cloud Setup & Authentication
 
-### 1. Configure GCP OAuth Application (`gws gcp`)
+### 1. GCP Project Setup & API Enablement (Google Cloud Shell)
+
+You can run these commands directly in [Google Cloud Shell](https://shell.cloud.google.com) or using the local `gcloud` CLI:
+
+```bash
+# 1. Set your project ID (replace with your desired or existing project ID)
+export PROJECT_ID="my-gws-tools"
+
+# 2. Create the GCP project (skip if using an existing project)
+gcloud projects create $PROJECT_ID --name="Google Workspace CLI"
+
+# 3. Set the active project
+gcloud config set project $PROJECT_ID
+
+# 4. Enable all required Google Workspace APIs in one command
+gcloud services enable \
+  gmail.googleapis.com \
+  calendar-json.googleapis.com \
+  drive.googleapis.com \
+  tasks.googleapis.com \
+  sheets.googleapis.com \
+  docs.googleapis.com \
+  chat.googleapis.com \
+  youtube.googleapis.com \
+  meet.googleapis.com
+```
+
+### 2. Configure OAuth Consent Screen & Credentials
+
+1. **OAuth Consent Screen**:
+   * Open [Google Cloud Console > OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent).
+   * Choose **User Type**:
+     * **Internal**: If using Google Workspace organization accounts (all team members can log in immediately with no verification needed).
+     * **External**: If using standard `@gmail.com` accounts (keep Publishing Status in **Testing** and add your email addresses under **Test Users**).
+   * Enter **App name** (e.g. `gws CLI`) and your **User support email**, then save.
+
+2. **Create Desktop OAuth Client ID**:
+   * Open [Google Cloud Console > Credentials](https://console.cloud.google.com/apis/credentials).
+   * Click **Create Credentials** $\rightarrow$ **OAuth client ID**.
+   * Application type: **Desktop app**.
+   * Name: `gws Desktop Client`.
+   * Click **Create** and download the credentials JSON file (or copy the Client ID & Secret).
+
+### 3. Configure GCP OAuth Application (`gws gcp`)
 
 Import the OAuth Client ID JSON downloaded from Google Cloud Console:
 ```bash
@@ -74,7 +117,7 @@ Verify your GCP application configuration:
 gws gcp status
 ```
 
-### 2. User Authentication & Multi-Account Support (`gws auth`)
+### 4. User Authentication & Multi-Account Support (`gws auth`)
 
 Authenticate your Google account via browser:
 ```bash
