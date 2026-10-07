@@ -15,13 +15,15 @@ func registerChatTools(s *server.MCPServer) {
 	s.AddTool(buildChatListSpacesTool(), handleChatListSpaces())
 	s.AddTool(buildChatSendMessageTool(), handleChatSendMessage())
 	s.AddTool(buildChatListMessagesTool(), handleChatListMessages())
+	s.AddTool(buildChatSearchMessagesTool(), handleChatSearchMessages())
 	s.AddTool(buildChatReactTool(), handleChatReact())
 	s.AddTool(buildChatListReactionsTool(), handleChatListReactions())
 }
 
 func buildChatListSpacesTool() mcp.Tool {
 	return mcp.NewTool("chat_list_spaces",
-		mcp.WithDescription("List joined Google Chat spaces, rooms, and direct message conversations"),
+		mcp.WithDescription("List or search joined Google Chat spaces, rooms, and direct message conversations"),
+		mcp.WithString("query", mcp.Description("Optional filter keyword matching space name or participant name")),
 		mcp.WithNumber("max", mcp.Description("Max spaces to return (default 20)")),
 		accountOption(),
 	)
@@ -65,6 +67,15 @@ func buildChatListMessagesTool() mcp.Tool {
 	)
 }
 
+func buildChatSearchMessagesTool() mcp.Tool {
+	return mcp.NewTool("chat_search_messages",
+		mcp.WithDescription("Search messages across all Google Chat spaces and conversations"),
+		mcp.WithString("query", mcp.Required(), mcp.Description("Search filter or keyword across messages (e.g. 'godot', 'has_link()')")),
+		mcp.WithNumber("max", mcp.Description("Max messages to return (default 20)")),
+		accountOption(),
+	)
+}
+
 func handleChatListSpaces() server.ToolHandlerFunc {
 	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		svc, err := chat.NewService(withAccountContext(c, req))
@@ -72,11 +83,32 @@ func handleChatListSpaces() server.ToolHandlerFunc {
 			return mcp.NewToolResultError("auth error: " + err.Error()), nil
 		}
 		max := int64(req.GetInt("max", 20))
-		spaces, err := svc.ListSpaces(max)
+		q := req.GetString("query", "")
+		spaces, err := svc.SearchSpaces(q, max)
 		if err != nil {
 			return mcp.NewToolResultError("chat error: " + err.Error()), nil
 		}
 		b, _ := json.MarshalIndent(spaces, "", "  ")
+		return mcp.NewToolResultText(string(b)), nil
+	}
+}
+
+func handleChatSearchMessages() server.ToolHandlerFunc {
+	return func(c context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		svc, err := chat.NewService(withAccountContext(c, req))
+		if err != nil {
+			return mcp.NewToolResultError("auth error: " + err.Error()), nil
+		}
+		q, err := req.RequireString("query")
+		if err != nil {
+			return mcp.NewToolResultError(err.Error()), nil
+		}
+		max := int64(req.GetInt("max", 20))
+		msgs, err := svc.SearchMessages(q, max)
+		if err != nil {
+			return mcp.NewToolResultError("search error: " + err.Error()), nil
+		}
+		b, _ := json.MarshalIndent(msgs, "", "  ")
 		return mcp.NewToolResultText(string(b)), nil
 	}
 }

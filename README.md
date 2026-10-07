@@ -291,6 +291,14 @@ gws docs append <doc_id> "Key decisions made during sprint kickoff.\n"
 gws chat spaces
 gws chat spaces --json
 
+# Search conversations / spaces by name or participant
+gws chat spaces "Jan"
+gws chat spaces -q "dev"
+
+# Search messages across all conversations (alias: find)
+gws chat search "WordPress"
+gws chat search "roadmap" --max 10 --json
+
 # List recent messages from a space (aliases: msgs, list <space_id>)
 gws chat messages "spaces/AAAA..." --max 10
 gws chat messages "spaces/AAAA..." --json

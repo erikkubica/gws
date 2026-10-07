@@ -232,3 +232,30 @@ func (s *Service) fetchAndAttachUsers(msg *MessageInfo) {
 		}
 	}
 }
+
+// SearchMessages searches across all spaces matching the query filter.
+func (s *Service) SearchMessages(query string, pageSize int64) ([]*MessageInfo, error) {
+	cleanQuery := strings.TrimSpace(query)
+	if cleanQuery == "" {
+		return nil, fmt.Errorf("search query cannot be empty")
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	req := &chat.SearchMessagesRequest{
+		Filter:   cleanQuery,
+		PageSize: pageSize,
+	}
+	res, err := s.client.Spaces.Messages.Search("spaces/-", req).Do()
+	if err != nil {
+		return nil, fmt.Errorf("search messages: %w", err)
+	}
+	var msgs []*MessageInfo
+	for _, r := range res.Results {
+		if r.Message != nil {
+			msgs = append(msgs, formatMessageInfo(r.Message))
+		}
+	}
+	s.populateReactionUsers(msgs)
+	return msgs, nil
+}

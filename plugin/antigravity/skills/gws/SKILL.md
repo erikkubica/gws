@@ -68,6 +68,8 @@ Authentication is configured in `~/.config/gws/token.json`.
 
 ### 💬 Google Chat (`gws chat`)
 - List spaces & DMs: `gws chat spaces [--max 20] [--json]` (aliases: `rooms`, `dms`, `list`)
+- Search spaces & DMs: `gws chat spaces "<query>" [-q "<query>"]`
+- Search messages across spaces: `gws chat search "<query>" [--max 20] [--json]` (alias: `find`)
 - List messages in space/DM: `gws chat messages <space_id> [--max 20] [--json]` (aliases: `msgs`, `list <space_id>`)
 - Send message: `gws chat send <space_id> "<message>" [--reply-to <msg_id>] [--attach <path>]`
 - Reply in thread: `gws chat reply <space_id> <message_id> "<message>" [--attach <path>]`

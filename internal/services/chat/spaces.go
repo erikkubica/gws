@@ -201,3 +201,39 @@ func (s *Service) GetSpace(name string) (*SpaceInfo, error) {
 	members := s.fetchSpaceMemberNames(sp.Name)
 	return s.resolveSpaceInfo(sp, members, s.getCurrentUserName()), nil
 }
+
+// SearchSpaces filters joined spaces and DMs matching a query against display names and members.
+func (s *Service) SearchSpaces(query string, pageSize int64) ([]*SpaceInfo, error) {
+	spaces, err := s.ListSpaces(pageSize)
+	if err != nil {
+		return nil, err
+	}
+	clean := strings.TrimSpace(query)
+	if clean == "" {
+		return spaces, nil
+	}
+	q := strings.ToLower(clean)
+	var filtered []*SpaceInfo
+	for _, sp := range spaces {
+		if spaceMatchesQuery(sp, q) {
+			filtered = append(filtered, sp)
+		}
+	}
+	return filtered, nil
+}
+
+func spaceMatchesQuery(sp *SpaceInfo, query string) bool {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q == "" {
+		return true
+	}
+	if strings.Contains(strings.ToLower(sp.DisplayName), q) || strings.Contains(strings.ToLower(sp.Name), q) {
+		return true
+	}
+	for _, m := range sp.Members {
+		if strings.Contains(strings.ToLower(m), q) {
+			return true
+		}
+	}
+	return false
+}

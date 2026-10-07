@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/erikkubica/gws/internal/services/chat"
@@ -109,14 +110,42 @@ var chatReactionsCmd = &cobra.Command{
 	},
 }
 
+var chatSearchCmd = &cobra.Command{
+	Use:     "search [query]",
+	Aliases: []string{"find"},
+	Short:   "Search messages across all Google Chat conversations",
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		svc, err := chat.NewService(context.Background())
+		if err != nil {
+			return err
+		}
+		msgs, err := svc.SearchMessages(args[0], chatMax)
+		if err != nil {
+			return err
+		}
+		if chatJSON {
+			b, _ := json.MarshalIndent(msgs, "", "  ")
+			fmt.Println(string(b))
+			return nil
+		}
+		printMessagesTable(msgs)
+		return nil
+	},
+}
+
 func init() {
 	chatSendCmd.Flags().StringVar(&chatReplyTo, "reply-to", "", "Message ID to reply to (starts or continues thread)")
 	chatSendCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
 
 	chatReplyCmd.Flags().StringVar(&chatAttachment, "attach", "", "Local file path to upload as an attachment")
 
+	chatSearchCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of messages to return")
+	chatSearchCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
+
 	chatCmd.AddCommand(chatSendCmd)
 	chatCmd.AddCommand(chatReplyCmd)
 	chatCmd.AddCommand(chatReactCmd)
 	chatCmd.AddCommand(chatReactionsCmd)
+	chatCmd.AddCommand(chatSearchCmd)
 }

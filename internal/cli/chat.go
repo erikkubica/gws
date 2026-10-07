@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	chatMax  int64
-	chatJSON bool
-	chatAsc  bool
+	chatMax         int64
+	chatJSON        bool
+	chatAsc         bool
+	chatSpacesQuery string
 )
 
 var chatCmd = &cobra.Command{
@@ -22,15 +23,19 @@ var chatCmd = &cobra.Command{
 }
 
 var chatSpacesCmd = &cobra.Command{
-	Use:     "spaces",
+	Use:     "spaces [query]",
 	Aliases: []string{"rooms", "dms"},
-	Short:   "List joined Google Chat spaces and direct messages (aliases: rooms, dms)",
+	Short:   "List or search joined Google Chat spaces and direct messages (aliases: rooms, dms)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		svc, err := chat.NewService(context.Background())
 		if err != nil {
 			return err
 		}
-		spaces, err := svc.ListSpaces(chatMax)
+		query := chatSpacesQuery
+		if len(args) > 0 {
+			query = args[0]
+		}
+		spaces, err := svc.SearchSpaces(query, chatMax)
 		if err != nil {
 			return err
 		}
@@ -189,6 +194,7 @@ func formatSingleReaction(r chat.ReactionSummary) string {
 
 func init() {
 	chatSpacesCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of spaces to return")
+	chatSpacesCmd.Flags().StringVarP(&chatSpacesQuery, "query", "q", "", "Filter spaces by name or member")
 	chatSpacesCmd.Flags().BoolVar(&chatJSON, "json", false, "Output results in JSON format")
 
 	chatMessagesCmd.Flags().Int64VarP(&chatMax, "max", "m", 20, "Maximum number of messages to return")
